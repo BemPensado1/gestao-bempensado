@@ -9,7 +9,7 @@ st.set_page_config(page_title="Gestão Bem Pensado", page_icon="🧁", layout="w
 # Conexão segura com o Supabase usando a chave secreta
 @st.cache_resource
 def init_connection():
-    return psycopg2.connect(st.secrets["DB_URL"])
+    return psycopg2.connect(st.secrets["DB_URL"], sslmode='require')
 
 conn = init_connection()
 
