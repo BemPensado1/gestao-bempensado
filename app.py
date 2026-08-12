@@ -1,15 +1,22 @@
 import streamlit as st
-import psycopg2
 import pandas as pd
 import base64
 from datetime import datetime
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 st.set_page_config(page_title="Gestão Bem Pensado", page_icon="🧁", layout="wide")
 
-# Conexão segura com o Supabase usando a chave secreta
-@st.cache_resource
+# Conexão segura com sistema Anti-Falhas
+@st.cache_resource(show_spinner="Conectando ao cofre de dados...")
 def init_connection():
-    return psycopg2.connect(st.secrets["DB_URL"])
+    try:
+        return psycopg2.connect(st.secrets["DB_URL"])
+    except Exception as e:
+        st.error("🚨 **ALERTA: Falha na Conexão com o Banco de Dados**")
+        st.info("Verifique a variável `DB_URL` no Streamlit Secrets.")
+        st.code(str(e))
+        st.stop()
 
 conn = init_connection()
 
