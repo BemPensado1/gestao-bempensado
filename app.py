@@ -8,7 +8,7 @@ from psycopg2.extras import RealDictCursor
 st.set_page_config(page_title="Gestão Bem Pensado", page_icon="🧁", layout="wide")
 
 # Conexão segura com sistema Anti-Falhas
-@st.cache_resource(show_spinner="Conectando ao cofre de dados...")
+
 def init_connection():
     try:
         return psycopg2.connect(st.secrets["DB_URL"])
