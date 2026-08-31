@@ -101,13 +101,13 @@ elif menu == "🏢 Custos Fixos":
         df_cf = fetch_data("SELECT nome, valor_mensal FROM custos_fixos")
         st.dataframe(df_cf)
         st.metric("Total Custos Fixos", f"R$ {df_cf['valor_mensal'].sum():.2f}")
-st.markdown("---")
+        st.markdown("---")
     st.subheader("🗑️ Excluir Custo Fixo")
     
     # Busca os custos direto do banco de dados
-    cursor = conn.cursor()
-    cursor.execute("SELECT nome FROM custos_fixos")
-    nomes_cadastrados = [row[0] for row in cursor.fetchall()]
+     cursor = conn.cursor()
+     cursor.execute("SELECT nome FROM custos_fixos")
+     nomes_cadastrados = [row[0] for row in cursor.fetchall()]
     
     if nomes_cadastrados:
         opcao_excluir = st.selectbox("Selecione o custo que deseja remover:", nomes_cadastrados)
