@@ -333,3 +333,58 @@ elif menu == "📊 Ponto de Equilíbrio & DRE":
         st.warning("Registre movimentações no Fluxo de Caixa para ver sua DRE e Ponto de Equilíbrio.")
 
 conn.close()
+
+if menu == "🛒 Estoque & Compras":
+    st.header("Controle de Estoque e Lista de Compras")
+    
+    # Adiciona a coluna de estoque mínimo no banco de dados, caso não exista
+    try:
+        run_query("ALTER TABLE insumos ADD COLUMN IF NOT EXISTS estoque_minimo NUMERIC DEFAULT 0;")
+    except:
+        pass
+    
+    df_estoque = fetch_data("SELECT id, nome, marca, unidade, estoque_atual, estoque_minimo FROM insumos ORDER BY nome")
+    
+    if df_estoque.empty:
+        st.info("Nenhum insumo cadastrado ainda. Vá à aba de Insumos para começar!")
+    else:
+        st.subheader("📦 Atualização Rápida de Estoque")
+        st.write("Edite as quantidades diretamente na tabela abaixo (como se fosse um Excel) e clique em Salvar!")
+        
+        # Tabela interativa para edição rápida
+        df_editado = st.data_editor(
+            df_estoque,
+            column_config={
+                "id": None, # Esconde a coluna ID
+                "nome": st.column_config.TextColumn("Insumo", disabled=True),
+                "marca": st.column_config.TextColumn("Marca", disabled=True),
+                "unidade": st.column_config.TextColumn("Unid.", disabled=True),
+                "estoque_atual": st.column_config.NumberColumn("Estoque Atual", min_value=0.0, format="%.2f"),
+                "estoque_minimo": st.column_config.NumberColumn("Estoque Mínimo (Alerta)", min_value=0.0, format="%.2f")
+            },
+            hide_index=True,
+            use_container_width=True
+        )
+        
+        if st.button("💾 Salvar Estoque Atualizado"):
+            for index, row in df_editado.iterrows():
+                run_query("UPDATE insumos SET estoque_atual=%s, estoque_minimo=%s WHERE id=%s", 
+                          (row['estoque_atual'], row['estoque_minimo'], row['id']))
+            st.success("Tudo atualizado! Suas quantidades foram salvas.")
+            st.rerun()
+            
+        st.markdown("---")
+        st.subheader("🛒 Sua Lista de Compras")
+        
+        # Filtra automaticamente quem está com o estoque abaixo ou igual ao mínimo
+        df_compras = df_editado[df_editado['estoque_atual'] <= df_editado['estoque_minimo']]
+        
+        if df_compras.empty:
+            st.success("🎉 Tudo em dia! Você não tem nenhum item abaixo do estoque mínimo.")
+        else:
+            st.warning(f"Atenção: Você tem {len(df_compras)} itens precisando de reposição!")
+            st.dataframe(
+                df_compras[['nome', 'marca', 'estoque_atual', 'estoque_minimo', 'unidade']], 
+                hide_index=True,
+                use_container_width=True
+            )
