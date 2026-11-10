@@ -61,8 +61,7 @@ def create_tables():
 create_tables()
 
 # --- MENU ---
-menu = st.sidebar.radio("Navegação", ["📦 Insumos", "🏢 Custos Fixos", "📸 Fichas Técnicas", "💲 Precificação Inteligente", "💸 Fluxo de Caixa", "📊 Ponto de Equilíbrio & DRE"])
-
+menu = st.sidebar.radio("Navegação", ["📦 Insumos", "🏢 Custos Fixos", "📋 Fichas Técnicas", "💲 Precificação Inteligente", "💸 Fluxo de Caixa", "📊 Ponto de Equilíbrio & DRE"], label_visibility="collapsed")
 # Funções auxiliares
 def run_query(query, params=()):
     with conn.cursor() as cur:
