@@ -161,31 +161,70 @@ if menu == "📦 Insumos":
                         st.success("Insumo excluído!")
                         st.rerun()
 if menu == "🏢 Custos Fixos":
+    if menu == "🏢 Custos Fixos":
     st.header("Gestão de Custos Fixos")
     
-    # Recupera os dados para o cálculo do total e evita o NameError
-    df_cf = fetch_data("SELECT * FROM custos_fixos")
+    # Recupera os dados para o cálculo do total e exibição da tabela
+    try:
+        df_cf = pd.read_sql("SELECT * FROM custos_fixos", conn)
+    except:
+        try:
+            conn.rollback()
+        except:
+            pass
+        df_cf = pd.DataFrame()
+
     if not df_cf.empty and 'valor_mensal' in df_cf.columns:
         st.metric("Total Custos Fixos", f"R$ {df_cf['valor_mensal'].sum():.2f}")
+        
+        # --- TABELA VISUAL DOS CUSTOS FIXOS ---
+        st.subheader("📋 Custos Cadastrados")
+        st.dataframe(
+            df_cf[['nome', 'valor_mensal']], 
+            column_config={
+                "nome": "Custo Fixo",
+                "valor_mensal": st.column_config.NumberColumn("Valor Mensal (R$)", format="R$ %.2f")
+            },
+            hide_index=True,
+            use_container_width=True
+        )
     else:
         st.metric("Total Custos Fixos", "R$ 0.00")
-        
+        st.info("Nenhum custo fixo cadastrado ainda.")
+
     st.markdown("---")
     st.subheader("🗑️ Excluir Custo Fixo")
     
-    # Busca os custos direto do banco de dados
-    cursor = conn.cursor()
-    cursor.execute("SELECT nome FROM custos_fixos")
-    nomes_cadastrados = [row[0] for row in cursor.fetchall()]
-    
+    # Busca os custos direto do banco de dados para o selectbox
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT nome FROM custos_fixos")
+        nomes_cadastrados = [row[0] for row in cursor.fetchall()]
+    except:
+        try:
+            conn.rollback()
+        except:
+            pass
+        nomes_cadastrados = []
+
     if nomes_cadastrados:
-        opcao_excluir = st.selectbox("Selecione o custo que deseja remover:", nomes_cadastrados)
+        opcao_excluir = st.selectbox("Selecione o custo que deseja remover:", [""] + nomes_cadastrados)
         
-        if st.button("Excluir Item"):
-            cursor.execute("DELETE FROM custos_fixos WHERE nome = %s", (opcao_excluir,))
-            conn.commit()
-            st.success(f"O item '{opcao_excluir}' foi excluído!")
-            st.rerun()
+        if opcao_excluir != "":
+            if st.button("Excluir Item"):
+                try:
+                    cursor.execute("DELETE FROM custos_fixos WHERE nome = %s", (opcao_excluir,))
+                    conn.commit()
+                    st.success(f"Custo '{opcao_excluir}' excluído com sucesso!")
+                    st.rerun()
+                except Exception as ex:
+                    try:
+                        conn.rollback()
+                    except:
+                        pass
+                    st.error(f"Erro ao excluir: {ex}")
+    else:
+        st.info("Não há custos fixos disponíveis para exclusão.")
 
 if menu == "📋 Fichas Técnicas":
     st.header("Montagem das Fichas Técnicas")
