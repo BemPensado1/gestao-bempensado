@@ -65,7 +65,7 @@ menu = st.sidebar.radio("Navegação", ["🏠 Início", "📦 Insumos", "🏢 Cu
 
 if menu == "🏠 Início":
     st.title("🧁 Sistema de Gestão Bem Pensado")
-    st.write("Bem-vinda ao seu centro de controlo! Selecione uma opção no menu lateral para gerir as suas receitas e custos.")# Funções auxiliares
+    st.write("Bem-vinda ao seu centro de controle! Selecione uma opção no menu lateral para gerir as suas receitas e custos.")# Funções auxiliares
 def run_query(query, params=()):
     with conn.cursor() as cur:
         cur.execute(query, params)
