@@ -134,7 +134,7 @@ def fetch_data(query, params=()):
             st.rerun()
 
 
-elif menu == "📸 Fichas Técnicas":
+if menu == "📸 Fichas Técnicas":
     st.header("Montar Ficha Técnica com Foto")
     insumos_df = fetch_data("SELECT id, nome, unidade, custo_real_unitario FROM insumos")
     
