@@ -116,32 +116,37 @@ if menu == "📦 Insumos":
         df_ins = fetch_data("SELECT nome, marca, fator_correcao, custo_real_unitario, estoque_atual FROM insumos")
         st.dataframe(df_ins)
         if menu == "🏢 Custos Fixos":
-            st.metric("Total Custos Fixos", f"R$ {df_cf['valor_mensal'].sum():.2f}")
-            st.markdown("---")
-        st.subheader("🗑️ Excluir Custo Fixo")
+    st.header("Gestão de Custos Fixos")
     
-        # Busca os custos direto do banco de dados
-        cursor = conn.cursor()
-        cursor.execute("SELECT nome FROM custos_fixos")
-        nomes_cadastrados = [row[0] for row in cursor.fetchall()]
+    # Recupera os dados para o cálculo do total e evita o NameError
+    df_cf = fetch_data("SELECT * FROM custos_fixos")
+    if not df_cf.empty and 'valor_mensal' in df_cf.columns:
+        st.metric("Total Custos Fixos", f"R$ {df_cf['valor_mensal'].sum():.2f}")
+    else:
+        st.metric("Total Custos Fixos", "R$ 0.00")
+        
+    st.markdown("---")
+    st.subheader("🗑️ Excluir Custo Fixo")
     
-        if nomes_cadastrados:
-            opcao_excluir = st.selectbox("Selecione o custo que deseja remover:", nomes_cadastrados)
+    # Busca os custos direto do banco de dados
+    cursor = conn.cursor()
+    cursor.execute("SELECT nome FROM custos_fixos")
+    nomes_cadastrados = [row[0] for row in cursor.fetchall()]
     
-            if st.button("Excluir Item"):
-                cursor.execute("DELETE FROM custos_fixos WHERE nome = %s", (opcao_excluir,))
-                conn.commit()
-                st.success(f"O item '{opcao_excluir}' foi excluído!")
-                st.rerun()
+    if nomes_cadastrados:
+        opcao_excluir = st.selectbox("Selecione o custo que deseja remover:", nomes_cadastrados)
+        
+        if st.button("Excluir Item"):
+            cursor.execute("DELETE FROM custos_fixos WHERE nome = %s", (opcao_excluir,))
+            conn.commit()
+            st.success(f"O item '{opcao_excluir}' foi excluído!")
+            st.rerun()
 
-
-
-
-        if menu == "📋 Fichas Técnicas":
+if menu == "📋 Fichas Técnicas":
     st.header("Montagem das Fichas Técnicas")
     insumos_df = fetch_data("SELECT id, nome, unidade, custo_real_unitario FROM insumos")
     
-        if insumos_df.empty:
+    if insumos_df.empty:
         st.warning("Cadastre insumos primeiro.")
     else:
         nome_receita = st.text_input("Nome da Receita")
