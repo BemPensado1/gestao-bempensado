@@ -337,7 +337,13 @@ conn.close()
 if menu == "🛒 Estoque & Compras":
     st.header("Controle de Estoque e Lista de Compras")
     
-    # Mágica segura: verifica suavemente se a coluna existe antes de tentar criá-la
+    # O antídoto: força o banco de dados a esquecer qualquer erro anterior e destravar
+    try:
+        conn.rollback()
+    except:
+        pass
+    
+    # Verifica suavemente se a coluna existe antes de tentar criá-la
     verifica_coluna = fetch_data("SELECT column_name FROM information_schema.columns WHERE table_name='insumos' AND column_name='estoque_minimo'")
     if verifica_coluna.empty:
         run_query("ALTER TABLE insumos ADD COLUMN estoque_minimo NUMERIC DEFAULT 0")
@@ -387,4 +393,3 @@ if menu == "🛒 Estoque & Compras":
                 hide_index=True,
                 use_container_width=True
             )
-            
