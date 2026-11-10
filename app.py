@@ -121,15 +121,14 @@ if menu == "📦 Insumos":
     st.subheader("✏️ Atualizar ou Excluir Insumos")
     st.info("💡 Se você atualizar o preço aqui, TODAS as Fichas Técnicas que usam este ingrediente serão recalculadas automaticamente!")
 
-    df_edit = fetch_data("SELECT id, nome, preco_compra, peso_bruto, peso_liquido, marca FROM insumos ORDER BY nome")
+    # Adicionado o 'estoque_atual' na busca do banco de dados
+    df_edit = fetch_data("SELECT id, nome, preco_compra, peso_bruto, peso_liquido, marca, estoque_atual FROM insumos ORDER BY nome")
     
     if not df_edit.empty:
-        # Criamos uma lista formatada "ID - Nome (Marca)" para ficar fácil de achar
         opcoes = [""] + df_edit.apply(lambda row: f"{row['id']} - {row['nome']} ({row['marca']})", axis=1).tolist()
         selecao = st.selectbox("Selecione o Insumo:", opcoes)
         
         if selecao != "":
-            # Puxa os dados atuais do banco de dados para preencher a caixinha
             insumo_id = int(selecao.split(" - ")[0])
             dados_atuais = df_edit[df_edit['id'] == insumo_id].iloc[0]
             
@@ -140,17 +139,20 @@ if menu == "📦 Insumos":
                     novo_pb = st.number_input("Novo Peso Total Comprado", value=float(dados_atuais['peso_bruto']), min_value=0.01)
                 with e_col2:
                     novo_pl = st.number_input("Novo Peso Real Aproveitado", value=float(dados_atuais['peso_liquido']), min_value=0.01)
+                    # Novo campo para editar o estoque atual
+                    estoque_bd = dados_atuais['estoque_atual']
+                    novo_estoque = st.number_input("Novo Estoque Atual", value=float(estoque_bd) if pd.notna(estoque_bd) else 0.0, min_value=0.0)
                     
                 st.markdown("---")
                 btn1, btn2 = st.columns(2)
                 with btn1:
-                    if st.form_submit_button("💾 Salvar Novo Preço"):
+                    if st.form_submit_button("💾 Salvar Alterações"):
                         novo_fc = novo_pb / novo_pl
                         novo_custo = (novo_preco / novo_pb) * novo_fc
                         
-                        # Atualiza apenas os valores, mantendo o mesmo ID e Nome para não quebrar a ficha técnica
-                        query_upd = "UPDATE insumos SET preco_compra=%s, peso_bruto=%s, peso_liquido=%s, fator_correcao=%s, custo_real_unitario=%s WHERE id=%s"
-                        run_query(query_upd, (novo_preco, novo_pb, novo_pl, novo_fc, novo_custo, insumo_id))
+                        # A query de atualização agora inclui o estoque_atual
+                        query_upd = "UPDATE insumos SET preco_compra=%s, peso_bruto=%s, peso_liquido=%s, fator_correcao=%s, custo_real_unitario=%s, estoque_atual=%s WHERE id=%s"
+                        run_query(query_upd, (novo_preco, novo_pb, novo_pl, novo_fc, novo_custo, novo_estoque, insumo_id))
                         st.success("Atualizado com sucesso!")
                         st.rerun()
                 with btn2:
