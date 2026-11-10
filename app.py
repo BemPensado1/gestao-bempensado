@@ -76,48 +76,45 @@ def fetch_data(query, params=()):
 
 # --- MÓDULOS ---
 
-    if menu == "📦 Insumos":
-        st.header("Cadastro de Insumos & Fator de Correção")
-        
-        # Mágica silenciosa: adiciona a coluna "marca" no banco de dados se ela não existir
-        try:
-            run_query("ALTER TABLE insumos ADD COLUMN IF NOT EXISTS marca TEXT DEFAULT '-';")
-        except:
-            pass
+    elif menu == "📦 Insumos":
+    st.header("Cadastro de Insumos & Fator de Correção")
+    
+    # Mágica silenciosa: adiciona a coluna "marca" no banco de dados se ela não existir
+    try:
+        run_query("ALTER TABLE insumos ADD COLUMN IF NOT EXISTS marca TEXT DEFAULT '-';")
+    except:
+        pass
 
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            with st.form("form_insumo", clear_on_submit=True):
-                # Cria duas colunas menores dentro do formulário
-                f_col1, f_col2 = st.columns(2)
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        with st.form("form_insumo", clear_on_submit=True):
+            f_col1, f_col2 = st.columns(2)
+            
+            with f_col1:
+                nome = st.text_input("Nome do Insumo")
+                marca = st.text_input("Marca (Ex: Italac, Moça)")
+                preco = st.number_input("Preço Pago (R$)", min_value=0.01)
+                peso_liquido = st.number_input("Peso Real Aproveitado", min_value=0.01)
                 
-                with f_col1:
-                    nome = st.text_input("Nome do Insumo")
-                    marca = st.text_input("Marca (Ex: Italac, Moça)")
-                    preco = st.number_input("Preço Pago (R$)", min_value=0.01)
-                    peso_liquido = st.number_input("Peso Real Aproveitado", min_value=0.01)
-                    
-                with f_col2:
-                    unidade = st.selectbox("Unidade de Uso", ["g", "ml", "unid"])
-                    peso_bruto = st.number_input("Peso Total Comprado", min_value=0.01)
-                    est_atual = st.number_input("Estoque Atual", min_value=0.0)
+            with f_col2:
+                unidade = st.selectbox("Unidade de Uso", ["g", "ml", "unid"])
+                peso_bruto = st.number_input("Peso Total Comprado", min_value=0.01)
+                est_atual = st.number_input("Estoque Atual", min_value=0.0)
+            
+            if st.form_submit_button("Cadastrar Insumo"):
+                fc = peso_bruto / peso_liquido
+                custo_real = (preco / peso_bruto) * fc
                 
-                if st.form_submit_button("Cadastrar Insumo"):
-                    fc = peso_bruto / peso_liquido
-                    custo_real = (preco / peso_bruto) * fc
-                    
-                    # Salva no banco de dados incluindo a nova coluna "marca"
-                    query = "INSERT INTO insumos (nome, marca, unidade, preco_compra, peso_bruto, peso_liquido, fator_correcao, custo_real_unitario, estoque_atual) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-                    run_query(query, (nome, marca, unidade, preco, peso_bruto, peso_liquido, fc, custo_real, est_atual))
-                    
-                    st.success("Salvo com sucesso!")
-                    st.rerun()
+                query = "INSERT INTO insumos (nome, marca, unidade, preco_compra, peso_bruto, peso_liquido, fator_correcao, custo_real_unitario, estoque_atual) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                run_query(query, (nome, marca, unidade, preco, peso_bruto, peso_liquido, fc, custo_real, est_atual))
+                
+                st.success("Salvo com sucesso!")
+                st.rerun()
 
-        with col2:
-            # Puxa os dados do banco de dados agora incluindo a marca para exibir na tabela
-            df_ins = fetch_data("SELECT nome, marca, fator_correcao, custo_real_unitario, estoque_atual FROM insumos")
-            st.dataframe(df_ins)
+    with col2:
+        df_ins = fetch_data("SELECT nome, marca, fator_correcao, custo_real_unitario, estoque_atual FROM insumos")
+        st.dataframe(df_ins)
         st.markdown("---")
         with st.expander("✏️ Editar ou Excluir Insumo"):
             nomes_cadastrados = df_ins['nome'].tolist() if not df_ins.empty else []
