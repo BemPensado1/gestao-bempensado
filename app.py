@@ -161,8 +161,7 @@ if menu == "📦 Insumos":
                         st.success("Insumo excluído!")
                         st.rerun()
 if menu == "🏢 Custos Fixos":
-    if menu == "🏢 Custos Fixos":
-    st.header("Gestão de Custos Fixos")
+        st.header("Gestão de Custos Fixos")
     
     # Recupera os dados para o cálculo do total e exibição da tabela
     try:
