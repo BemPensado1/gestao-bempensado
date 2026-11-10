@@ -337,11 +337,10 @@ conn.close()
 if menu == "🛒 Estoque & Compras":
     st.header("Controle de Estoque e Lista de Compras")
     
-    # Adiciona a coluna de estoque mínimo e limpa bloqueios do banco de dados
-    try:
-        run_query("ALTER TABLE insumos ADD COLUMN IF NOT EXISTS estoque_minimo NUMERIC DEFAULT 0;")
-    except:
-        conn.rollback()
+    # Mágica segura: verifica suavemente se a coluna existe antes de tentar criá-la
+    verifica_coluna = fetch_data("SELECT column_name FROM information_schema.columns WHERE table_name='insumos' AND column_name='estoque_minimo'")
+    if verifica_coluna.empty:
+        run_query("ALTER TABLE insumos ADD COLUMN estoque_minimo NUMERIC DEFAULT 0")
     
     df_estoque = fetch_data("SELECT id, nome, marca, unidade, estoque_atual, estoque_minimo FROM insumos ORDER BY nome")
     
