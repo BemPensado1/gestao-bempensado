@@ -337,12 +337,19 @@ conn.close()
 if menu == "🛒 Estoque & Compras":
     st.header("Controle de Estoque e Lista de Compras")
     
-    # O antídoto: força o banco de dados a esquecer qualquer erro anterior e destravar
+    # Botão mágico de destravamento (limpa a memória presa do sistema)
+    if st.button("🔄 Destravar Conexão com o Banco de Dados"):
+        st.cache_resource.clear()
+        st.cache_data.clear()
+        st.rerun()
+        
+    # Teste de segurança: verifica se a conexão está viva antes de prosseguir
     try:
-        conn.rollback()
+        fetch_data("SELECT 1")
     except:
-        pass
-    
+        st.error("⚠️ O banco de dados bloqueou o acesso devido ao erro anterior. Por favor, clique no botão 'Destravar Conexão' logo acima para limpar o sistema!")
+        st.stop() # Para a execução aqui, evitando a tela vermelha assustadora
+        
     # Verifica suavemente se a coluna existe antes de tentar criá-la
     verifica_coluna = fetch_data("SELECT column_name FROM information_schema.columns WHERE table_name='insumos' AND column_name='estoque_minimo'")
     if verifica_coluna.empty:
