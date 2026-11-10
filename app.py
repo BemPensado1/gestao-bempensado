@@ -164,7 +164,7 @@ if menu == "🏢 Custos Fixos":
     st.header("Gestão de Custos Fixos")
     
     try:
-        df_cf = pd.read_sql("SELECT * FROM custos_fixos", conn)
+        df_cf = pd.read_sql("SELECT id, nome, valor_mensal FROM custos_fixos ORDER BY nome", conn)
     except:
         try:
             conn.rollback()
@@ -189,38 +189,54 @@ if menu == "🏢 Custos Fixos":
         st.metric("Total Custos Fixos", "R$ 0.00")
         st.info("Nenhum custo fixo cadastrado ainda.")
 
+    # --- NOVA ÁREA: EDITAR CUSTO FIXO ---
     st.markdown("---")
-    st.subheader("🗑️ Excluir Custo Fixo")
-    
-    try:
-        cursor = conn.cursor()
-        cursor.execute("SELECT nome FROM custos_fixos")
-        nomes_cadastrados = [row[0] for row in cursor.fetchall()]
-    except:
-        try:
-            conn.rollback()
-        except:
-            pass
-        nomes_cadastrados = []
+    st.subheader("✏️ Atualizar ou Excluir Custo Fixo")
 
-    if nomes_cadastrados:
-        opcao_excluir = st.selectbox("Selecione o custo que deseja remover:", [""] + nomes_cadastrados)
+    if not df_cf.empty:
+        opcoes_cf = [""] + df_cf.apply(lambda row: f"{row['id']} - {row['nome']} (R$ {row['valor_mensal']:.2f})", axis=1).tolist()
+        selecao_cf = st.selectbox("Selecione o Custo para Editar ou Excluir:", opcoes_cf)
         
-        if opcao_excluir != "":
-            if st.button("Excluir Item"):
-                try:
-                    cursor.execute("DELETE FROM custos_fixos WHERE nome = %s", (opcao_excluir,))
-                    conn.commit()
-                    st.success(f"Custo '{opcao_excluir}' excluído com sucesso!")
-                    st.rerun()
-                except Exception as ex:
-                    try:
-                        conn.rollback()
-                    except:
-                        pass
-                    st.error(f"Erro ao excluir: {ex}")
+        if selecao_cf != "":
+            cf_id = int(selecao_cf.split(" - ")[0])
+            dados_cf = df_cf[df_cf['id'] == cf_id].iloc[0]
+            
+            with st.form("form_editar_cf"):
+                novo_nome_cf = st.text_input("Nome do Custo", value=str(dados_cf['nome']))
+                novo_valor_cf = st.number_input("Novo Valor Mensal (R$)", value=float(dados_cf['valor_mensal']), min_value=0.01)
+                
+                st.markdown("---")
+                b_col1, b_col2 = st.columns(2)
+                with b_col1:
+                    if st.form_submit_button("💾 Salvar Alterações"):
+                        try:
+                            cursor = conn.cursor()
+                            cursor.execute("UPDATE custos_fixos SET nome=%s, valor_mensal=%s WHERE id=%s", (novo_nome_cf, novo_valor_cf, cf_id))
+                            conn.commit()
+                            st.success("Custo fixo atualizado com sucesso!")
+                            st.rerun()
+                        except Exception as ex:
+                            try:
+                                conn.rollback()
+                            except:
+                                pass
+                            st.error(f"Erro ao atualizar: {ex}")
+                with b_col2:
+                    if st.form_submit_button("🗑️ Excluir Permanentemente"):
+                        try:
+                            cursor = conn.cursor()
+                            cursor.execute("DELETE FROM custos_fixos WHERE id=%s", (cf_id,))
+                            conn.commit()
+                            st.success("Custo fixo excluído!")
+                            st.rerun()
+                        except Exception as ex:
+                            try:
+                                conn.rollback()
+                            except:
+                                pass
+                            st.error(f"Erro ao excluir: {ex}")
     else:
-        st.info("Não há custos fixos disponíveis para exclusão.")
+        st.info("Não há custos disponíveis para edição.")
 
 if menu == "📋 Fichas Técnicas":
     st.header("Montagem das Fichas Técnicas")
