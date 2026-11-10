@@ -337,25 +337,37 @@ conn.close()
 if menu == "🛒 Estoque & Compras":
     st.header("Controle de Estoque e Lista de Compras")
     
-    # Botão mágico de destravamento (limpa a memória presa do sistema)
-    if st.button("🔄 Destravar Conexão com o Banco de Dados"):
-        st.cache_resource.clear()
-        st.cache_data.clear()
-        st.rerun()
-        
-    # Teste de segurança: verifica se a conexão está viva antes de prosseguir
+    # Força o reset imediato da conexão global para limpar qualquer travamento
     try:
-        fetch_data("SELECT 1")
-    except:
-        st.error("⚠️ O banco de dados bloqueou o acesso devido ao erro anterior. Por favor, clique no botão 'Destravar Conexão' logo acima para limpar o sistema!")
-        st.stop() # Para a execução aqui, evitando a tela vermelha assustadora
+        if 'conn' in globals() and conn:
+            conn.rollback()
+    except Exception:
+        pass
         
-    # Verifica suavemente se a coluna existe antes de tentar criá-la
-    verifica_coluna = fetch_data("SELECT column_name FROM information_schema.columns WHERE table_name='insumos' AND column_name='estoque_minimo'")
-    if verifica_coluna.empty:
-        run_query("ALTER TABLE insumos ADD COLUMN estoque_minimo NUMERIC DEFAULT 0")
-    
-    df_estoque = fetch_data("SELECT id, nome, marca, unidade, estoque_atual, estoque_minimo FROM insumos ORDER BY nome")
+    if st.button("🔄 Tentar Novamente / Recarregar"):
+        st.reryn() if hasattr(st, 'reryn') else st.rerun()
+
+    # Cria a coluna com segurança blindada
+    try:
+        run_query("ALTER TABLE insumos ADD COLUMN IF NOT EXISTS estoque_minimo NUMERIC DEFAULT 0;")
+    except Exception:
+        try:
+            if 'conn' in globals() and conn:
+                conn.rollback()
+        except:
+            pass
+
+    # Tenta puxar os dados com proteção contra falhas
+    try:
+        df_estoque = fetch_data("SELECT id, nome, marca, unidade, estoque_atual, estoque_minimo FROM insumos ORDER BY nome")
+    except Exception as e:
+        try:
+            if 'conn' in globals() and conn:
+                conn.rollback()
+        except:
+            pass
+        st.error("⚠️ A conexão com o banco de dados foi restabelecida. Por favor, clique no botão 'Tentar Novamente / Recarregar' logo acima!")
+        st.stop()
     
     if df_estoque.empty:
         st.info("Nenhum insumo cadastrado ainda. Vá à aba de Insumos para começar!")
