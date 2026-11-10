@@ -80,12 +80,18 @@ if menu == "📦 Insumos":
     col1, col2 = st.columns(2)
     with col1:
         with st.form("form_insumo", clear_on_submit=True):
-            nome = st.text_input("Nome do Insumo")
-            unidade = st.selectbox("Unidade de Uso", ["g", "ml", "unid"])
-            preco = st.number_input("Preço Pago (R$)", min_value=0.01)
-            peso_bruto = st.number_input("Peso Total Comprado", min_value=0.01)
-            peso_liquido = st.number_input("Peso Real Aproveitado", min_value=0.01)
-            est_atual = st.number_input("Estoque Atual", min_value=0.0)
+            # Cria duas colunas menores dentro do formulário
+            f_col1, f_col2 = st.columns(2)
+            
+            with f_col1:
+                nome = st.text_input("Nome do Insumo")
+                preco = st.number_input("Preço Pago (R$)", min_value=0.01)
+                peso_liquido = st.number_input("Peso Real Aproveitado", min_value=0.01)
+                
+            with f_col2:
+                unidade = st.selectbox("Unidade de Uso", ["g", "ml", "unid"])
+                peso_bruto = st.number_input("Peso Total Comprado", min_value=0.01)
+                est_atual = st.number_input("Estoque Atual", min_value=0.0)
             if st.form_submit_button("Cadastrar Insumo"):
                 fc = peso_bruto / peso_liquido
                 custo_real = (preco / peso_bruto) * fc
