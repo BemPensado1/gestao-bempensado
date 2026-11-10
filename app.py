@@ -115,7 +115,7 @@ if menu == "📦 Insumos":
     with col2:
         df_ins = fetch_data("SELECT nome, marca, fator_correcao, custo_real_unitario, estoque_atual FROM insumos")
         st.dataframe(df_ins)
-    if menu == "🏢 Custos Fixos":
+if menu == "🏢 Custos Fixos":
     st.header("Gestão de Custos Fixos")
     
     # Recupera os dados para o cálculo do total e evita o NameError
