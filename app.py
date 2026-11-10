@@ -337,43 +337,34 @@ conn.close()
 if menu == "🛒 Estoque & Compras":
     st.header("Controle de Estoque e Lista de Compras")
     
-    # Força o reset imediato da conexão global para limpar qualquer travamento
-    try:
-        if 'conn' in globals() and conn:
-            conn.rollback()
-    except Exception:
-        pass
-        
-    if st.button("🔄 Tentar Novamente / Recarregar"):
-        st.reryn() if hasattr(st, 'reryn') else st.rerun()
-
-    # Cria a coluna com segurança blindada
-    try:
-        run_query("ALTER TABLE insumos ADD COLUMN IF NOT EXISTS estoque_minimo NUMERIC DEFAULT 0;")
-    except Exception:
-        try:
-            if 'conn' in globals() and conn:
-                conn.rollback()
-        except:
-            pass
-
-    # Tenta puxar os dados com proteção contra falhas
-    try:
-        df_estoque = fetch_data("SELECT id, nome, marca, unidade, estoque_atual, estoque_minimo FROM insumos ORDER BY nome")
-    except Exception as e:
-        try:
-            if 'conn' in globals() and conn:
-                conn.rollback()
-        except:
-            pass
-        st.error("⚠️ A conexão com o banco de dados foi restabelecida. Por favor, clique no botão 'Tentar Novamente / Recarregar' logo acima!")
-        st.stop()
+    # Conexão direta e independente para esta aba (ignora qualquer cache travada)
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
     
+    try:
+        # Tenta criar uma conexão direta nova
+        con_direta = psycopg2.connect(st.secrets["DATABASE_URL"])
+        
+        # Garante que a coluna existe sem depender de funções externas
+        with con_direta.cursor() as cur_temp:
+            cur_temp.execute("ALTER TABLE insumos ADD COLUMN IF NOT EXISTS estoque_minimo NUMERIC DEFAULT 0;")
+            con_direta.commit()
+            
+        # Puxa os dados diretamente
+        import pandas as pd
+        query_estoque = "SELECT id, nome, marca, unidade, estoque_atual, estoque_minimo FROM insumos ORDER BY nome"
+        df_estoque = pd.read_sql(query_estoque, con_direta)
+        con_direta.close()
+        
+    except Exception as e:
+        st.error(f"⚠️ Erro ao carregar o estoque diretamente: {e}")
+        df_estoque = pd.DataFrame()
+
     if df_estoque.empty:
-        st.info("Nenhum insumo cadastrado ainda. Vá à aba de Insumos para começar!")
+        st.info("Nenhum insumo cadastrado ainda ou tabela vazia. Vá à aba de Insumos para cadastrar o primeiro item!")
     else:
         st.subheader("📦 Atualização Rápida de Estoque")
-        st.write("Edite as quantidades diretamente na tabela abaixo (como se fosse um Excel) e clique em Salvar!")
+        st.write("Edite as quantidades diretamente na tabela abaixo e clique em Salvar!")
         
         # Tabela interativa para edição rápida
         df_editado = st.data_editor(
@@ -391,11 +382,20 @@ if menu == "🛒 Estoque & Compras":
         )
         
         if st.button("💾 Salvar Estoque Atualizado"):
-            for index, row in df_editado.iterrows():
-                run_query("UPDATE insumos SET estoque_atual=%s, estoque_minimo=%s WHERE id=%s", 
-                          (row['estoque_atual'], row['estoque_minimo'], row['id']))
-            st.success("Tudo atualizado! Suas quantidades foram salvas.")
-            st.rerun()
+            try:
+                con_salvar = psycopg2.connect(st.secrets["DATABASE_URL"])
+                with con_salvar.cursor() as cur_s:
+                    for index, row in df_editado.iterrows():
+                        cur_s.execute(
+                            "UPDATE insumos SET estoque_atual=%s, estoque_minimo=%s WHERE id=%s", 
+                            (row['estoque_atual'], row['estoque_minimo'], row['id'])
+                        )
+                    con_salvar.commit()
+                con_salvar.close()
+                st.success("Tudo atualizado! Suas quantidades foram salvas.")
+                st.rerun()
+            except Exception as ex:
+                st.error(f"Erro ao salvar: {ex}")
             
         st.markdown("---")
         st.subheader("🛒 Sua Lista de Compras")
