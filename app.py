@@ -240,43 +240,133 @@ if menu == "🏢 Custos Fixos":
 
 if menu == "📋 Fichas Técnicas":
     st.header("Montagem das Fichas Técnicas")
-    insumos_df = fetch_data("SELECT id, nome, unidade, custo_real_unitario FROM insumos")
     
-    if insumos_df.empty:
-        st.warning("Cadastre insumos primeiro.")
-    else:
-        nome_receita = st.text_input("Nome da Receita")
+    # Garante que as tabelas de receitas existem no banco de dados
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS receitas (
+                id SERIAL PRIMARY KEY,
+                nome TEXT UNIQUE,
+                rendimento_unidades NUMERIC,
+                peso_total_g NUMERIC
+            );
+            CREATE TABLE IF NOT EXISTS receita_itens (
+                id SERIAL PRIMARY KEY,
+                receita_id INTEGER REFERENCES receitas(id) ON DELETE CASCADE,
+                insumo_id INTEGER REFERENCES insumos(id),
+                quantidade_usada NUMERIC
+            );
+        """)
+        conn.commit()
+    except Exception:
+        try:
+            conn.rollback()
+        except:
+            pass
+
+    nome_receita = st.text_input("Nome da Receita / Produto (Ex: Brownie Tradicional)", key="input_nome_receita")
     
-    if insumos_df.empty:
-        st.warning("Cadastre insumos primeiro.")
+    col_r1, col_r2 = st.columns(2)
+    with col_r1:
+        rendimento = st.number_input("Rendimento (Quantas unidades ou porções rende?)", min_value=1.0, value=1.0, key="input_rendimento")
+    with col_r2:
+        peso_total = st.number_input("Peso Total Final da Receita (em gramas ou ml)", min_value=0.1, value=1000.0, key="input_peso_total")
+
+    st.markdown("---")
+    st.subheader("🛒 Selecionar Insumos para a Receita")
+
+    try:
+        df_insumos_ft = pd.read_sql("SELECT id, nome, marca, unidade, custo_real_unitario FROM insumos ORDER BY nome", conn)
+    except:
+        try:
+            conn.rollback()
+        except:
+            pass
+        df_insumos_ft = pd.DataFrame()
+
+    if df_insumos_ft.empty:
+        st.warning("⚠️ Cadastre seus insumos na aba 'Insumos' antes de montar as fichas técnicas!")
     else:
-        nome_receita = st.text_input("Nome da Receita")
-        col1, col2 = st.columns(2)
-        rendimento = col1.number_input("Rendimento (Unidades)", min_value=1.0)
-        tempo = col2.number_input("Tempo de Preparo (Minutos)", min_value=1.0)
-        foto = st.file_uploader("Foto do Produto Final (Opcional)", type=["jpg", "png", "jpeg"])
-        
-        if "itens_receita" not in st.session_state:
+        # Usamos uma session_state para gerir os itens adicionados dinamicamente
+        if 'itens_receita' not in st.session_state:
             st.session_state.itens_receita = []
-            
-        col_ins, col_qtd, col_btn = st.columns([3, 2, 1])
-        insumo_nome = col_ins.selectbox("Insumo", insumos_df["nome"].tolist())
-        row_ins = insumos_df[insumos_df["nome"] == insumo_nome].iloc[0]
-        qtd_usada = col_qtd.number_input(f"Quantidade ({row_ins['unidade']})", min_value=0.01)
-        if col_btn.button("Adicionar Ingrediente"):
-            st.session_state.itens_receita.append({"insumo_id": int(row_ins["id"]), "nome": insumo_nome, "quantidade": float(qtd_usada)})
-                
+
+        col_sel1, col_sel2, col_sel3 = st.columns([3, 2, 1])
+        with col_sel1:
+            insumo_escolhido = st.selectbox(
+                "Insumo", 
+                df_insumos_ft.apply(lambda r: f"{r['id']} - {r['nome']} ({r['marca']})", axis=1).tolist(),
+                key="select_insumo_ft"
+            )
+        with col_sel2:
+            qtd_usada = st.number_input("Qtd usada (g, ml ou un)", min_value=0.01, value=100.0, key="input_qtd_usada")
+        with col_sel3:
+            st.write("")
+            st.write("")
+            if st.button("➕ Adicionar", key="btn_add_insumo"):
+                ins_id = int(insumo_escolhido.split(" - ")[0])
+                st.session_state.itens_receita.append({"insumo_id": ins_id, "quantidade": qtd_usada})
+                st.success("Item adicionado à lista!")
+
         if st.session_state.itens_receita:
-            st.dataframe(pd.DataFrame(st.session_state.itens_receita)[['nome', 'quantidade']])
-            if st.button("Salvar Receita Completa"):
-                foto_b64 = base64.b64encode(foto.read()).decode("utf-8") if foto else ""
-                run_query("INSERT INTO receitas (nome, rendimento, tempo_preparo_minutos, imagem_base64) VALUES (%s, %s, %s, %s) ON CONFLICT (nome) DO NOTHING", (nome_receita, rendimento, tempo, foto_b64))
-                rec_id = fetch_data("SELECT id FROM receitas WHERE nome = %s", (nome_receita,)).iloc[0]['id']
-                for item in st.session_state.itens_receita:
-                    run_query("INSERT INTO receita_itens (receita_id, insumo_id, quantidade) VALUES (%s, %s, %s)", (int(rec_id), int(item["insumo_id"]), item["quantidade"]))
-                st.success("Receita Salva!")
-                st.session_state.itens_receita = []
-                st.rerun()
+            st.write("### 📋 Ingredientes Adicionados nesta Receita:")
+            lista_exibicao = []
+            custo_total_receita = 0.0
+
+            for item in st.session_state.itens_receita:
+                dados_ins = df_insumos_ft[df_insumos_ft['id'] == item['insumo_id']].iloc[0]
+                custo_parcial = dados_ins['custo_real_unitario'] * item['quantidade']
+                custo_total_receita += custo_parcial
+
+                lista_exibicao.append({
+                    "Insumo": dados_ins['nome'],
+                    "Marca": dados_ins['marca'],
+                    "Qtd Usada": item['quantidade'],
+                    "Unidade": dados_ins['unidade'],
+                    "Custo Parcial (R$)": round(custo_parcial, 2)
+                })
+
+            st.dataframe(pd.DataFrame(lista_exibicao), hide_index=True, use_container_width=True)
+            st.metric("💰 Custo Total de Produção da Receita", f"R$ {custo_total_receita:.2f}")
+            st.metric("🍰 Custo por Unidade / Porção", f"R$ {custo_total_receita / rendimento:.2f}")
+
+            if st.button("💾 Salvar Ficha Técnica Completa", key="btn_salvar_receita"):
+                if nome_receita.strip() == "":
+                    st.error("Por favor, preencha o Nome da Receita antes de salvar.")
+                else:
+                    try:
+                        cursor = conn.cursor()
+                        # Insere ou atualiza a receita principal
+                        cursor.execute("""
+                            INSERT INTO receitas (nome, rendimento_unidades, peso_total_g) 
+                            VALUES (%s, %s, %s)
+                            ON CONFLICT (nome) DO UPDATE 
+                            SET rendimento_unidades = EXCLUDED.rendimento_unidades, peso_total_g = EXCLUDED.peso_total_g
+                            RETURNING id;
+                        """, (nome_receita, rendimento, peso_total))
+                        rec_id = cursor.fetchone()[0]
+
+                        # Remove itens antigos caso seja atualização
+                        cursor.execute("DELETE FROM receita_itens WHERE receita_id = %s", (rec_id,))
+
+                        # Insere os novos itens
+                        for item in st.session_state.itens_receita:
+                            cursor.execute("""
+                                INSERT INTO receita_itens (receita_id, insumo_id, quantidade_usada)
+                                VALUES (%s, %s, %s)
+                            """, (rec_id, item['insumo_id'], item['quantidade']))
+
+                        conn.commit()
+                        st.success(f"Ficha técnica da receita '{nome_receita}' salva com sucesso!")
+                        st.session_state.itens_receita = []
+                        st.rerun()
+                    except Exception as err:
+                        try:
+                            conn.rollback()
+                        except:
+                            pass
+                        st.error(f"Erro ao salvar ficha técnica: {err}")
 
 elif menu == "💲 Precificação Inteligente":
     st.header("Simulador de Preço por Canal de Venda")
