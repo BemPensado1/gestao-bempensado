@@ -102,7 +102,7 @@ elif menu == "🏢 Custos Fixos":
         st.dataframe(df_cf)
         st.metric("Total Custos Fixos", f"R$ {df_cf['valor_mensal'].sum():.2f}")
         st.markdown("---")
-    st.subheader("🗑️ Excluir Custo Fixo")
+        st.subheader("🗑️ Excluir Custo Fixo")
     
     # Busca os custos direto do banco de dados
      cursor = conn.cursor()
