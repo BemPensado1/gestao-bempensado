@@ -61,8 +61,11 @@ def create_tables():
 create_tables()
 
 # --- MENU ---
-menu = st.sidebar.radio("Navegação", ["📦 Insumos", "🏢 Custos Fixos", "📋 Fichas Técnicas", "💲 Precificação Inteligente", "💸 Fluxo de Caixa", "📊 Ponto de Equilíbrio & DRE"], label_visibility="collapsed")
-# Funções auxiliares
+menu = st.sidebar.radio("Navegação", ["🏠 Início", "📦 Insumos", "🏢 Custos Fixos", "📋 Fichas Técnicas", "💲 Precificação Inteligente", "💸 Fluxo de Caixa", "📊 Ponto de Equilíbrio & DRE"], label_visibility="collapsed")
+
+if menu == "🏠 Início":
+    st.title("🧁 Sistema de Gestão Bem Pensado")
+    st.write("Bem-vinda ao seu centro de controlo! Selecione uma opção no menu lateral para gerir as suas receitas e custos.")# Funções auxiliares
 def run_query(query, params=()):
     with conn.cursor() as cur:
         cur.execute(query, params)
