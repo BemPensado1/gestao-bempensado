@@ -136,6 +136,13 @@ def fetch_data(query, params=()):
 
 if menu == "📸 Fichas Técnicas":
     st.header("Montar Ficha Técnica com Foto")
+
+    if menu == "🏢 Custos Fixos":
+    st.header("Gestão de Custos Fixos")
+    st.info("Área de registo de despesas mensais.")
+
+if menu == "📋 Fichas Técnicas":
+    st.header("Montagem das Fichas Técnicas")
     insumos_df = fetch_data("SELECT id, nome, unidade, custo_real_unitario FROM insumos")
     
     if insumos_df.empty:
