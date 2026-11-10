@@ -76,7 +76,7 @@ def fetch_data(query, params=()):
 
 # --- MÓDULOS ---
 
-    if menu == "📦 Insumos":
+     if menu == "📦 Insumos":
         st.header("Cadastro de Insumos & Fator de Correção")
         
         # Mágica silenciosa: adiciona a coluna "marca" no banco de dados se ela não existir
