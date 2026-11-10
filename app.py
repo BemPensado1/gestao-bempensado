@@ -150,6 +150,11 @@ if menu == "📋 Fichas Técnicas":
         st.warning("Cadastre insumos primeiro.")
     else:
         nome_receita = st.text_input("Nome da Receita")
+    
+    if insumos_df.empty:
+        st.warning("Cadastre insumos primeiro.")
+    else:
+        nome_receita = st.text_input("Nome da Receita")
         col1, col2 = st.columns(2)
         rendimento = col1.number_input("Rendimento (Unidades)", min_value=1.0)
         tempo = col2.number_input("Tempo de Preparo (Minutos)", min_value=1.0)
