@@ -161,9 +161,8 @@ if menu == "📦 Insumos":
                         st.success("Insumo excluído!")
                         st.rerun()
 if menu == "🏢 Custos Fixos":
-        st.header("Gestão de Custos Fixos")
+    st.header("Gestão de Custos Fixos")
     
-    # Recupera os dados para o cálculo do total e exibição da tabela
     try:
         df_cf = pd.read_sql("SELECT * FROM custos_fixos", conn)
     except:
@@ -176,7 +175,6 @@ if menu == "🏢 Custos Fixos":
     if not df_cf.empty and 'valor_mensal' in df_cf.columns:
         st.metric("Total Custos Fixos", f"R$ {df_cf['valor_mensal'].sum():.2f}")
         
-        # --- TABELA VISUAL DOS CUSTOS FIXOS ---
         st.subheader("📋 Custos Cadastrados")
         st.dataframe(
             df_cf[['nome', 'valor_mensal']], 
@@ -194,7 +192,6 @@ if menu == "🏢 Custos Fixos":
     st.markdown("---")
     st.subheader("🗑️ Excluir Custo Fixo")
     
-    # Busca os custos direto do banco de dados para o selectbox
     try:
         cursor = conn.cursor()
         cursor.execute("SELECT nome FROM custos_fixos")
