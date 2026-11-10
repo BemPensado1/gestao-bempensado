@@ -134,10 +134,7 @@ def fetch_data(query, params=()):
             st.rerun()
 
 
-if menu == "📸 Fichas Técnicas":
-    st.header("Montar Ficha Técnica com Foto")
-
-    if menu == "🏢 Custos Fixos":
+if menu == "🏢 Custos Fixos":
     st.header("Gestão de Custos Fixos")
     st.info("Área de registo de despesas mensais.")
 
