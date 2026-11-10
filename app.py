@@ -61,7 +61,7 @@ def create_tables():
 create_tables()
 
 # --- MENU ---
-menu = st.sidebar.radio("Navegação", ["🏠 Início", "📦 Insumos", "🏢 Custos Fixos", "📋 Fichas Técnicas", "💲 Precificação Inteligente", "💸 Fluxo de Caixa", "📊 Ponto de Equilíbrio & DRE"], label_visibility="collapsed")
+menu = st.sidebar.radio("Navegação", ["🏠 Início", "📦 Insumos", "🛒 Estoque & Compras", "🏢 Custos Fixos", "📋 Fichas Técnicas", "💲 Precificação Inteligente", "💸 Fluxo de Caixa", "📊 Ponto de Equilíbrio & DRE"], label_visibility="collapsed")
 
 if menu == "🏠 Início":
     st.title("🧁 Sistema de Gestão Bem Pensado")
