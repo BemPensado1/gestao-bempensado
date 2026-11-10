@@ -6,6 +6,24 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 st.set_page_config(page_title="Gestão Bem Pensado", page_icon="🧁", layout="wide")
+# Limpeza visual: esconde cabeçalho, rodapé e menu padrão do Streamlit
+    st.markdown("""
+        <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        /* Ajuste fino para o fundo da página e do menu lateral */
+        [data-testid="stAppViewContainer"] { background-color: #FDFBF7; }
+        [data-testid="stSidebar"] { background-color: #F5EBE6; }
+        </style>
+        """, unsafe_allow_html=True)
+
+    # Exibe a logo do Bem Pensado no topo do menu lateral
+    try:
+        st.sidebar.image("logo.png", use_column_width=True)
+        st.sidebar.markdown("---")
+    except:
+        pass # Caso a imagem ainda não tenha carregado, o sistema não trava
 
 # Conexão segura com sistema Anti-Falhas
 
