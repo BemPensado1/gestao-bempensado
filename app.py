@@ -115,34 +115,33 @@ if menu == "📦 Insumos":
     with col2:
         df_ins = fetch_data("SELECT nome, marca, fator_correcao, custo_real_unitario, estoque_atual FROM insumos")
         st.dataframe(df_ins)
-        st.metric("Total Custos Fixos", f"R$ {df_cf['valor_mensal'].sum():.2f}")
-        st.markdown("---")
-    st.subheader("🗑️ Excluir Custo Fixo")
+        if menu == "🏢 Custos Fixos":
+            st.metric("Total Custos Fixos", f"R$ {df_cf['valor_mensal'].sum():.2f}")
+            st.markdown("---")
+        st.subheader("🗑️ Excluir Custo Fixo")
+    
+        # Busca os custos direto do banco de dados
+        cursor = conn.cursor()
+        cursor.execute("SELECT nome FROM custos_fixos")
+        nomes_cadastrados = [row[0] for row in cursor.fetchall()]
+    
+        if nomes_cadastrados:
+            opcao_excluir = st.selectbox("Selecione o custo que deseja remover:", nomes_cadastrados)
+    
+            if st.button("Excluir Item"):
+                cursor.execute("DELETE FROM custos_fixos WHERE nome = %s", (opcao_excluir,))
+                conn.commit()
+                st.success(f"O item '{opcao_excluir}' foi excluído!")
+                st.rerun()
 
-    # Busca os custos direto do banco de dados
-    cursor = conn.cursor()
-    cursor.execute("SELECT nome FROM custos_fixos")
-    nomes_cadastrados = [row[0] for row in cursor.fetchall()]
-
-    if nomes_cadastrados:
-        opcao_excluir = st.selectbox("Selecione o custo que deseja remover:", nomes_cadastrados)
-
-        if st.button("Excluir Item"):
-            cursor.execute("DELETE FROM custos_fixos WHERE nome = %s", (opcao_excluir,))
-            conn.commit()
-            st.success(f"O item '{opcao_excluir}' foi excluído!")
-            st.rerun()
 
 
-if menu == "🏢 Custos Fixos":
-    st.header("Gestão de Custos Fixos")
-    st.info("Área de registo de despesas mensais.")
 
-if menu == "📋 Fichas Técnicas":
+        if menu == "📋 Fichas Técnicas":
     st.header("Montagem das Fichas Técnicas")
     insumos_df = fetch_data("SELECT id, nome, unidade, custo_real_unitario FROM insumos")
     
-    if insumos_df.empty:
+        if insumos_df.empty:
         st.warning("Cadastre insumos primeiro.")
     else:
         nome_receita = st.text_input("Nome da Receita")
