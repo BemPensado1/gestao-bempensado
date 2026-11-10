@@ -61,7 +61,6 @@ def create_tables():
 create_tables()
 
 # --- MENU ---
-st.sidebar.title("🧁 Bem Pensado")
 menu = st.sidebar.radio("Navegação", ["📦 Insumos", "🏢 Custos Fixos", "📸 Fichas Técnicas", "💲 Precificação Inteligente", "💸 Fluxo de Caixa", "📊 Ponto de Equilíbrio & DRE"])
 
 # Funções auxiliares
