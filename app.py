@@ -115,38 +115,6 @@ def fetch_data(query, params=()):
     with col2:
         df_ins = fetch_data("SELECT nome, marca, fator_correcao, custo_real_unitario, estoque_atual FROM insumos")
         st.dataframe(df_ins)
-        st.markdown("---")
-        with st.expander("✏️ Editar ou Excluir Insumo"):
-            nomes_cadastrados = df_ins['nome'].tolist() if not df_ins.empty else []
-            if nomes_cadastrados:
-                insumo_alvo = st.selectbox("Selecione o insumo que deseja corrigir:", nomes_cadastrados)
-                
-                if st.button("❌ Excluir Insumo"):
-                    run_query("DELETE FROM insumos WHERE nome = %s", (insumo_alvo,))
-                    st.success(f"'{insumo_alvo}' excluído! Agora já pode cadastrá-lo novamente acima com os valores e os pontos (.) corretos.")
-                    st.rerun()
-
-elif menu == "🏢 Custos Fixos":
-    st.header("Custos Operacionais e Hora de Trabalho")
-    col1, col2 = st.columns(2)
-    with col1:
-        with st.form("form_custo"):
-            nome = st.text_input("Descrição (Ex: DAS, Aluguel, Luz)")
-            valor = st.number_input("Valor Mensal (R$)", min_value=0.01)
-            if st.form_submit_button("Salvar Custo Fixo"):
-                run_query("INSERT INTO custos_fixos (nome, valor_mensal) VALUES (%s, %s) ON CONFLICT (nome) DO UPDATE SET valor_mensal = EXCLUDED.valor_mensal", (nome, valor))
-                st.success("Salvo!")
-                st.rerun()
-        
-        st.write("---")
-        dias_mes = st.number_input("Quantos dias você trabalha no mês?", value=22)
-        horas_mes = st.number_input("Quantas horas por mês?", value=160)
-        if st.button("Atualizar Jornada"):
-            run_query("UPDATE config_negocio SET dias_trabalhados_mes = %s, horas_trabalhadas_mes = %s WHERE id = 1", (dias_mes, horas_mes))
-            st.success("Jornada atualizada!")
-    with col2:
-        df_cf = fetch_data("SELECT nome, valor_mensal FROM custos_fixos")
-        st.dataframe(df_cf)
         st.metric("Total Custos Fixos", f"R$ {df_cf['valor_mensal'].sum():.2f}")
         st.markdown("---")
     st.subheader("🗑️ Excluir Custo Fixo")
