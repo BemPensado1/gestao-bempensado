@@ -113,8 +113,51 @@ if menu == "📦 Insumos":
                 st.rerun()
 
     with col2:
-        df_ins = fetch_data("SELECT nome, marca, fator_correcao, custo_real_unitario, estoque_atual FROM insumos")
+        df_ins = fetch_data("SELECT id, nome, marca, custo_real_unitario FROM insumos")
         st.dataframe(df_ins)
+
+    # --- NOVA ÁREA: EDITAR E EXCLUIR ---
+    st.markdown("---")
+    st.subheader("✏️ Atualizar ou Excluir Insumos")
+    st.info("💡 Se você atualizar o preço aqui, TODAS as Fichas Técnicas que usam este ingrediente serão recalculadas automaticamente!")
+
+    df_edit = fetch_data("SELECT id, nome, preco_compra, peso_bruto, peso_liquido, marca FROM insumos ORDER BY nome")
+    
+    if not df_edit.empty:
+        # Criamos uma lista formatada "ID - Nome (Marca)" para ficar fácil de achar
+        opcoes = [""] + df_edit.apply(lambda row: f"{row['id']} - {row['nome']} ({row['marca']})", axis=1).tolist()
+        selecao = st.selectbox("Selecione o Insumo:", opcoes)
+        
+        if selecao != "":
+            # Puxa os dados atuais do banco de dados para preencher a caixinha
+            insumo_id = int(selecao.split(" - ")[0])
+            dados_atuais = df_edit[df_edit['id'] == insumo_id].iloc[0]
+            
+            with st.form("form_editar"):
+                e_col1, e_col2 = st.columns(2)
+                with e_col1:
+                    novo_preco = st.number_input("Novo Preço Pago (R$)", value=float(dados_atuais['preco_compra']), min_value=0.01)
+                    novo_pb = st.number_input("Novo Peso Total Comprado", value=float(dados_atuais['peso_bruto']), min_value=0.01)
+                with e_col2:
+                    novo_pl = st.number_input("Novo Peso Real Aproveitado", value=float(dados_atuais['peso_liquido']), min_value=0.01)
+                    
+                st.markdown("---")
+                btn1, btn2 = st.columns(2)
+                with btn1:
+                    if st.form_submit_button("💾 Salvar Novo Preço"):
+                        novo_fc = novo_pb / novo_pl
+                        novo_custo = (novo_preco / novo_pb) * novo_fc
+                        
+                        # Atualiza apenas os valores, mantendo o mesmo ID e Nome para não quebrar a ficha técnica
+                        query_upd = "UPDATE insumos SET preco_compra=%s, peso_bruto=%s, peso_liquido=%s, fator_correcao=%s, custo_real_unitario=%s WHERE id=%s"
+                        run_query(query_upd, (novo_preco, novo_pb, novo_pl, novo_fc, novo_custo, insumo_id))
+                        st.success("Atualizado com sucesso!")
+                        st.rerun()
+                with btn2:
+                    if st.form_submit_button("🗑️ Excluir Insumo Permanentemente"):
+                        run_query("DELETE FROM insumos WHERE id=%s", (insumo_id,))
+                        st.success("Insumo excluído!")
+                        st.rerun()
 if menu == "🏢 Custos Fixos":
     st.header("Gestão de Custos Fixos")
     
