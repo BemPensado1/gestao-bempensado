@@ -103,6 +103,16 @@ if menu == "📦 Insumos":
     with col2:
         df_ins = fetch_data("SELECT nome, fator_correcao, custo_real_unitario, estoque_atual FROM insumos")
         st.dataframe(df_ins)
+        st.markdown("---")
+        with st.expander("✏️ Editar ou Excluir Insumo"):
+            nomes_cadastrados = df_ins['nome'].tolist() if not df_ins.empty else []
+            if nomes_cadastrados:
+                insumo_alvo = st.selectbox("Selecione o insumo que deseja corrigir:", nomes_cadastrados)
+                
+                if st.button("❌ Excluir Insumo"):
+                    run_query("DELETE FROM insumos WHERE nome = %s", (insumo_alvo,))
+                    st.success(f"'{insumo_alvo}' excluído! Agora já pode cadastrá-lo novamente acima com os valores e os pontos (.) corretos.")
+                    st.rerun()
 
 elif menu == "🏢 Custos Fixos":
     st.header("Custos Operacionais e Hora de Trabalho")
