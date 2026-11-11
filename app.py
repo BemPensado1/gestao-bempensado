@@ -282,10 +282,8 @@ if menu == "📋 Fichas Técnicas":
             st.session_state["input_peso_total_unico"] = 1000.0
             st.session_state.itens_receita = []
         
-        st.button("✨ Nova Receita / Limpar", on_click=limpar_dados, use_container_width=True)
-        
-        st.button("✨ Nova Receita / Limpar", on_click=limpar_dados, use_container_width=True)
-    
+        st.button("✨ Nova Receita / Limpar", on_click=limpar_dados, use_container_width=True, key="btn_limpar_receita_topo")
+           
     # 1. Tenta criar as tabelas caso não existam (o código continua igual daqui para baixo...)
     
     # 1. Tenta criar as tabelas caso não existam
