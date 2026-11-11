@@ -113,25 +113,40 @@ if menu == "📦 Insumos":
                 st.rerun()
 
     with col2:
-        df_ins = fetch_data("SELECT id, nome, marca, custo_real_unitario FROM insumos")
+        # Agora puxamos também o preco_compra (o preço total pago)
+        df_ins = fetch_data("SELECT id, nome, marca, preco_compra, custo_real_unitario FROM insumos ORDER BY nome")
         
         if not df_ins.empty:
-            # Caixa de seleção vazia por padrão com texto fantasma
+            # Cria a lista combinando o nome e o preço para aparecer na pesquisa
+            opcoes_busca = df_ins.apply(lambda r: f"{r['nome']} - R$ {r['preco_compra']:.2f}", axis=1).tolist()
+            
             pesquisa = st.selectbox(
                 "🔍 Buscar Insumo na Tabela:", 
-                df_ins['nome'].tolist(),
+                opcoes_busca,
                 index=None,
                 placeholder="Pesquisar insumo..."
             )
             
-            # Se você selecionou/digitou algo, ele filtra. Se estiver vazio, mostra a tabela toda.
+            # Se selecionou algo, filtra extraindo apenas o nome (cortando a parte do preço)
             if pesquisa:
-                df_filtrado = df_ins[df_ins['nome'] == pesquisa]
+                nome_buscado = pesquisa.split(" - R$")[0]
+                df_filtrado = df_ins[df_ins['nome'] == nome_buscado]
             else:
                 df_filtrado = df_ins
                 
-            # Exibe a tabela
-            st.dataframe(df_filtrado, hide_index=True, use_container_width=True)
+            # Exibe a tabela configurada para ficar mais bonita e incluir o preço pago
+            st.dataframe(
+                df_filtrado, 
+                column_config={
+                    "id": None, # Esconde o ID para ficar mais limpo
+                    "nome": "Insumo",
+                    "marca": "Marca",
+                    "preco_compra": st.column_config.NumberColumn("Preço Pago (R$)", format="R$ %.2f"),
+                    "custo_real_unitario": st.column_config.NumberColumn("Custo Unitário (R$)", format="R$ %.4f")
+                },
+                hide_index=True, 
+                use_container_width=True
+            )
         else:
             st.info("Nenhum insumo cadastrado ainda.")
 
