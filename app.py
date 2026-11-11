@@ -95,11 +95,11 @@ if menu == "📦 Insumos":
                 nome = st.text_input("Nome do Insumo")
                 marca = st.text_input("Marca (Ex: Italac, Moça)")
                 preco = st.number_input("Preço Pago (R$)", min_value=0.01)
-                peso_liquido = st.number_input("Peso Real Aproveitado", min_value=0.01)
+                peso_liquido = st.number_input("Qtd Real Aproveitada (g, ml, un)", min_value=0.01)
                 
             with f_col2:
                 unidade = st.selectbox("Unidade de Uso", ["g", "ml", "unid"])
-                peso_bruto = st.number_input("Peso Total Comprado", min_value=0.01)
+                peso_bruto = st.number_input("Qtd Total Comprada (g, ml, un)", min_value=0.01)
                 est_atual = st.number_input("Estoque Atual", min_value=0.0)
             
             if st.form_submit_button("Cadastrar Insumo"):
