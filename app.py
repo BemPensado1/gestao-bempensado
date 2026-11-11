@@ -326,6 +326,8 @@ if menu == "📋 Fichas Técnicas":
         cursor.execute("ALTER TABLE receitas DROP COLUMN IF EXISTS peso_total CASCADE;")
         cursor.execute("ALTER TABLE receitas DROP COLUMN IF EXISTS custo_total CASCADE;")
         cursor.execute("ALTER TABLE receitas DROP COLUMN IF EXISTS tempo_preparo_minutos CASCADE;")
+        # A linha nova que vai limpar a tabela de ingredientes:
+        cursor.execute("ALTER TABLE receita_itens DROP COLUMN IF EXISTS quantidade CASCADE;")
         conn.commit()
     except:
         conn.rollback()
