@@ -470,6 +470,22 @@ if menu == "📋 Fichas Técnicas":
     st.markdown("---")
     st.subheader("📖 As Minhas Receitas Salvas")
     
+    # 1. Criamos as funções que vão preparar a memória ANTES da página recarregar
+    def preparar_edicao(rec_id, nome, rend, peso):
+        st.session_state["input_nome_receita_unico"] = nome
+        st.session_state["input_rendimento_unico"] = float(rend)
+        st.session_state["input_peso_total_unico"] = float(peso)
+        
+        query_edit = "SELECT insumo_id, quantidade_usada FROM receita_itens WHERE receita_id = %s"
+        df_edit = pd.read_sql(query_edit, conn, params=(int(rec_id),))
+        st.session_state.itens_receita = [{"insumo_id": int(r['insumo_id']), "quantidade": float(r['quantidade_usada'])} for _, r in df_edit.iterrows()]
+    
+    def apagar_receita(rec_id):
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM receitas WHERE id = %s", (int(rec_id),))
+        conn.commit()
+
+    # 2. Mostramos as receitas salvas
     try:
         df_receitas = pd.read_sql("SELECT id, nome, rendimento_unidades, peso_total_g FROM receitas ORDER BY nome", conn)
     except Exception:
@@ -514,35 +530,28 @@ if menu == "📋 Fichas Técnicas":
                         use_container_width=True
                     )
                     
-                    # Dividimos em 4 colunas para caber o botão de Editar
+                    # 3. Botões com on_click para evitar o erro de recarregamento
                     col_tot1, col_tot2, col_tot3, col_tot4 = st.columns([3, 3, 2, 2])
                     with col_tot1:
                         st.info(f"💰 Custo Total: **R$ {custo_total:.2f}**")
                     with col_tot2:
                         st.success(f"🍰 Custo/Unidade: **R$ {custo_unidade:.2f}**")
                     with col_tot3:
-                        if st.button("✏️ Editar", key=f"edit_rec_{dados_rec['id']}"):
-                            # Preenche os campos lá de cima automaticamente
-                            st.session_state["input_nome_receita_unico"] = dados_rec['nome']
-                            st.session_state["input_rendimento_unico"] = float(dados_rec['rendimento_unidades'])
-                            st.session_state["input_peso_total_unico"] = float(dados_rec['peso_total_g'])
-                            
-                            # Puxa os insumos pelo ID para a lista de edição
-                            query_edit_itens = "SELECT insumo_id, quantidade_usada FROM receita_itens WHERE receita_id = %s"
-                            df_edit = pd.read_sql(query_edit_itens, conn, params=(int(dados_rec['id']),))
-                            
-                            st.session_state.itens_receita = [{"insumo_id": int(r['insumo_id']), "quantidade": float(r['quantidade_usada'])} for _, r in df_edit.iterrows()]
-                            
-                            # Recarrega a página para mostrar os dados preenchidos no topo
-                            st.rerun()
+                        st.button(
+                            "✏️ Editar", 
+                            key=f"edit_rec_{dados_rec['id']}", 
+                            on_click=preparar_edicao, 
+                            args=(dados_rec['id'], dados_rec['nome'], dados_rec['rendimento_unidades'], dados_rec['peso_total_g'])
+                        )
                     with col_tot4:
-                        if st.button("🗑️ Excluir", key=f"del_rec_{dados_rec['id']}"):
-                            cursor = conn.cursor()
-                            cursor.execute("DELETE FROM receitas WHERE id = %s", (int(dados_rec['id']),))
-                            conn.commit()
-                            st.rerun()
+                        st.button(
+                            "🗑️ Excluir", 
+                            key=f"del_rec_{dados_rec['id']}", 
+                            on_click=apagar_receita, 
+                            args=(dados_rec['id'],)
+                        )
             except Exception as e:
-                st.error("Erro ao carregar os ingredientes.")
+                st.error(f"Erro ao carregar os ingredientes: {e}")
     else:
         st.info("Nenhuma ficha técnica guardada ainda.")
         
