@@ -429,15 +429,12 @@ if menu == "📋 Fichas Técnicas":
                             pass
                         st.error(f"Erro ao salvar ficha técnica: {err}")
 
-            if st.button("💾 Salvar Ficha Técnica Completa", key="btn_salvar_receita_unico"):
-
-            if st.button("💾 Salvar Ficha Técnica Completa", key="btn_salvar_receita"):
+if st.button("💾 Salvar Ficha Técnica Completa", key="btn_salvar_receita_unico"):
                 if nome_receita.strip() == "":
                     st.error("Por favor, preencha o Nome da Receita antes de salvar.")
                 else:
                     try:
                         cursor = conn.cursor()
-                        # Insere ou atualiza a receita principal
                         cursor.execute("""
                             INSERT INTO receitas (nome, rendimento_unidades, peso_total_g) 
                             VALUES (%s, %s, %s)
@@ -447,10 +444,8 @@ if menu == "📋 Fichas Técnicas":
                         """, (nome_receita, rendimento, peso_total))
                         rec_id = cursor.fetchone()[0]
 
-                        # Remove itens antigos caso seja atualização
                         cursor.execute("DELETE FROM receita_itens WHERE receita_id = %s", (rec_id,))
 
-                        # Insere os novos itens
                         for item in st.session_state.itens_receita:
                             cursor.execute("""
                                 INSERT INTO receita_itens (receita_id, insumo_id, quantidade_usada)
@@ -467,7 +462,6 @@ if menu == "📋 Fichas Técnicas":
                         except:
                             pass
                         st.error(f"Erro ao salvar ficha técnica: {err}")
-
 elif menu == "💲 Precificação Inteligente":
     st.header("Simulador de Preço por Canal de Venda")
     receitas_df = fetch_data("SELECT * FROM receitas")
