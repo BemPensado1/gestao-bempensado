@@ -571,7 +571,8 @@ elif menu == "💲 Precificação Inteligente":
         total_cf = float(fetch_data("SELECT SUM(valor_mensal) as t FROM custos_fixos").iloc[0]["t"] or 0)
         hr_mes = fetch_data("SELECT horas_trabalhadas_mes FROM config_negocio").iloc[0]["horas_trabalhadas_mes"]
         custo_min = (float(total_cf) / float(hr_mes)) / 60 if hr_mes > 0 else 0
-        custo_op_unit = (custo_min * float(rec_data["tempo_preparo_minutos"])) / float(rec_data["rendimento"])
+        tempo_preparo = st.number_input("⏳ Tempo de preparo da receita inteira (em minutos)", min_value=1, value=60)
+        custo_op_unit = (custo_min * tempo_preparo) / float(rec_data["rendimento_unidades"])
         custo_total = float(cmv_unit) + custo_op_unit
         
         st.markdown("### 1. Custo Real do Doce")
