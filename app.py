@@ -465,6 +465,73 @@ if menu == "📋 Fichas Técnicas":
                         except:
                             pass
                         st.error(f"Erro ao salvar ficha técnica: {err}")
+
+# === ÁREA PARA VISUALIZAR AS RECEITAS SALVAS ===
+    st.markdown("---")
+    st.subheader("📖 As Minhas Receitas Salvas")
+    
+    try:
+        df_receitas = pd.read_sql("SELECT id, nome, rendimento_unidades, peso_total_g FROM receitas ORDER BY nome", conn)
+    except Exception:
+        df_receitas = pd.DataFrame()
+        
+    if not df_receitas.empty:
+        # Aquela barra de pesquisa fantástica que já usámos nos insumos!
+        receita_selecionada = st.selectbox(
+            "Pesquisar receita salva:", 
+            df_receitas['nome'].tolist(), 
+            index=None, 
+            placeholder="Escolha uma receita para visualizar..."
+        )
+        
+        if receita_selecionada:
+            dados_rec = df_receitas[df_receitas['nome'] == receita_selecionada].iloc[0]
+            
+            # Puxa os ingredientes exatos que guardámos
+            query_itens = """
+                SELECT i.nome as "Insumo", i.marca as "Marca", ri.quantidade_usada as "Qtd Usada", 
+                       i.unidade as "Unidade", i.custo_real_unitario,
+                       (ri.quantidade_usada * i.custo_real_unitario) as "Custo Parcial"
+                FROM receita_itens ri
+                JOIN insumos i ON ri.insumo_id = i.id
+                WHERE ri.receita_id = %s
+            """
+            try:
+                df_itens_salvos = pd.read_sql(query_itens, conn, params=(int(dados_rec['id']),))
+                
+                if not df_itens_salvos.empty:
+                    custo_total = df_itens_salvos['Custo Parcial'].sum()
+                    custo_unidade = custo_total / float(dados_rec['rendimento_unidades'])
+                    
+                    st.write(f"**Rendimento:** {dados_rec['rendimento_unidades']} unidades/porções | **Peso Total:** {dados_rec['peso_total_g']}g")
+                    
+                    st.dataframe(
+                        df_itens_salvos,
+                        column_config={
+                            "custo_real_unitario": None, # Esconde o custo base para não poluir
+                            "Custo Parcial": st.column_config.NumberColumn("Custo Parcial (R$)", format="R$ %.2f"),
+                            "Qtd Usada": st.column_config.NumberColumn("Qtd Usada", format="%.2f")
+                        },
+                        hide_index=True,
+                        use_container_width=True
+                    )
+                    
+                    col_tot1, col_tot2, col_tot3 = st.columns(3)
+                    with col_tot1:
+                        st.info(f"💰 Custo Total: **R$ {custo_total:.2f}**")
+                    with col_tot2:
+                        st.success(f"🍰 Custo/Unidade: **R$ {custo_unidade:.2f}**")
+                    with col_tot3:
+                        if st.button("🗑️ Excluir Receita", key=f"del_rec_{dados_rec['id']}"):
+                            cursor = conn.cursor()
+                            cursor.execute("DELETE FROM receitas WHERE id = %s", (int(dados_rec['id']),))
+                            conn.commit()
+                            st.rerun()
+            except Exception as e:
+                st.error("Erro ao carregar os ingredientes da receita.")
+    else:
+        st.info("Nenhuma ficha técnica guardada ainda.")
+        
 elif menu == "💲 Precificação Inteligente":
     st.header("Simulador de Preço por Canal de Venda")
     receitas_df = fetch_data("SELECT * FROM receitas")
