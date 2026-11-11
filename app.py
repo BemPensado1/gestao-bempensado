@@ -317,6 +317,7 @@ if menu == "📋 Fichas Técnicas":
         cursor.execute("ALTER TABLE receitas DROP COLUMN IF EXISTS rendimento CASCADE;")
         cursor.execute("ALTER TABLE receitas DROP COLUMN IF EXISTS peso_total CASCADE;")
         cursor.execute("ALTER TABLE receitas DROP COLUMN IF EXISTS custo_total CASCADE;")
+        cursor.execute("ALTER TABLE receitas DROP COLUMN IF EXISTS tempo_preparo_minutos CASCADE;")
         conn.commit()
     except:
         conn.rollback()
