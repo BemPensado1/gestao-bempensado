@@ -565,7 +565,7 @@ elif menu == "💲 Precificação Inteligente":
         rec_data = receitas_df[receitas_df["nome"] == rec_sel].iloc[0]
         
         # Cálculo dos Custos
-        df_custos = fetch_data("SELECT ri.quantidade, i.custo_real_unitario FROM receita_itens ri JOIN insumos i ON ri.insumo_id = i.id WHERE ri.receita_id = %s", (int(rec_data["id"]),))
+        df_custos = fetch_data("SELECT ri.quantidade_usada, i.custo_real_unitario FROM receita_itens ri JOIN insumos i ON ri.insumo_id = i.id WHERE ri.receita_id = %s", (int(rec_data["id"]),))
         cmv_unit = (df_custos["quantidade"] * df_custos["custo_real_unitario"]).sum() / float(rec_data["rendimento"]) if not df_custos.empty else 0
         
         total_cf = float(fetch_data("SELECT SUM(valor_mensal) as t FROM custos_fixos").iloc[0]["t"] or 0)
