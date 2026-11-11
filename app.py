@@ -113,28 +113,25 @@ if menu == "📦 Insumos":
                 st.rerun()
 
     with col2:
-        # Agora puxamos também o preco_compra (o preço total pago)
+        # Puxa os dados incluindo o preço para exibir na tabela
         df_ins = fetch_data("SELECT id, nome, marca, preco_compra, custo_real_unitario FROM insumos ORDER BY nome")
         
         if not df_ins.empty:
-            # Cria a lista combinando o nome e o preço para aparecer na pesquisa
-            opcoes_busca = df_ins.apply(lambda r: f"{r['nome']} - R$ {r['preco_compra']:.2f}", axis=1).tolist()
-            
+            # Lista de pesquisa mostrando APENAS o nome do insumo
             pesquisa = st.selectbox(
                 "🔍 Buscar Insumo na Tabela:", 
-                opcoes_busca,
+                df_ins['nome'].tolist(),
                 index=None,
                 placeholder="Pesquisar insumo..."
             )
             
-            # Se selecionou algo, filtra extraindo apenas o nome (cortando a parte do preço)
+            # Filtra a tabela
             if pesquisa:
-                nome_buscado = pesquisa.split(" - R$")[0]
-                df_filtrado = df_ins[df_ins['nome'] == nome_buscado]
+                df_filtrado = df_ins[df_ins['nome'] == pesquisa]
             else:
                 df_filtrado = df_ins
                 
-            # Exibe a tabela configurada para ficar mais bonita e incluir o preço pago
+            # Exibe a tabela configurada com o Preço Pago aparecendo apenas aqui
             st.dataframe(
                 df_filtrado, 
                 column_config={
