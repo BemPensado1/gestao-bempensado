@@ -343,7 +343,6 @@ if menu == "📋 Fichas Técnicas":
         if st.session_state.itens_receita:
             st.write("### 📋 Ingredientes Adicionados nesta Receita:")
             
-            # 1. Prepara os dados para a tabela
             lista_tabela = []
             for item in st.session_state.itens_receita:
                 dados_ins = df_insumos_ft[df_insumos_ft['id'] == item['insumo_id']].iloc[0]
@@ -359,11 +358,10 @@ if menu == "📋 Fichas Técnicas":
 
             df_tabela = pd.DataFrame(lista_tabela)
 
-            # 2. Tabela interativa (st.data_editor em vez de st.dataframe)
             df_editado = st.data_editor(
                 df_tabela,
                 column_config={
-                    "id_oculto": None, # Esconde IDs técnicos
+                    "id_oculto": None, 
                     "custo_base": None,
                     "Insumo": st.column_config.Column(disabled=True),
                     "Marca": st.column_config.Column(disabled=True),
@@ -376,7 +374,6 @@ if menu == "📋 Fichas Técnicas":
                 key="editor_itens_receita"
             )
 
-            # 3. Verifica se você digitou uma nova quantidade
             mudou = False
             custo_total_receita = 0.0
             novos_itens = []
@@ -391,14 +388,46 @@ if menu == "📋 Fichas Técnicas":
                 custo_total_receita += (row['custo_base'] * qtd_editada)
                 novos_itens.append({"insumo_id": row['id_oculto'], "quantidade": qtd_editada})
 
-            # Se editou algo, atualiza a memória e recarrega para mudar o "Custo Parcial" visualmente na hora
             if mudou:
                 st.session_state.itens_receita = novos_itens
                 st.rerun()
 
-            # 4. Mostra os totais finais calculados
             st.metric("💰 Custo Total de Produção da Receita", f"R$ {custo_total_receita:.2f}")
             st.metric("🍰 Custo por Unidade / Porção", f"R$ {custo_total_receita / rendimento:.2f}")
+
+            if st.button("💾 Salvar Ficha Técnica Completa", key="btn_salvar_receita_unico"):
+                if nome_receita.strip() == "":
+                    st.error("Por favor, preencha o Nome da Receita antes de salvar.")
+                else:
+                    try:
+                        cursor = conn.cursor()
+                        cursor.execute("""
+                            INSERT INTO receitas (nome, rendimento_unidades, peso_total_g) 
+                            VALUES (%s, %s, %s)
+                            ON CONFLICT (nome) DO UPDATE 
+                            SET rendimento_unidades = EXCLUDED.rendimento_unidades, peso_total_g = EXCLUDED.peso_total_g
+                            RETURNING id;
+                        """, (nome_receita, rendimento, peso_total))
+                        rec_id = cursor.fetchone()[0]
+
+                        cursor.execute("DELETE FROM receita_itens WHERE receita_id = %s", (rec_id,))
+
+                        for item in st.session_state.itens_receita:
+                            cursor.execute("""
+                                INSERT INTO receita_itens (receita_id, insumo_id, quantidade_usada)
+                                VALUES (%s, %s, %s)
+                            """, (rec_id, item['insumo_id'], item['quantidade']))
+
+                        conn.commit()
+                        st.success(f"Ficha técnica da receita '{nome_receita}' salva com sucesso!")
+                        st.session_state.itens_receita = []
+                        st.rerun()
+                    except Exception as err:
+                        try:
+                            conn.rollback()
+                        except:
+                            pass
+                        st.error(f"Erro ao salvar ficha técnica: {err}")
 
             if st.button("💾 Salvar Ficha Técnica Completa", key="btn_salvar_receita_unico"):
 
