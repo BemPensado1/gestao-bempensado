@@ -342,25 +342,65 @@ if menu == "📋 Fichas Técnicas":
 
         if st.session_state.itens_receita:
             st.write("### 📋 Ingredientes Adicionados nesta Receita:")
-            lista_exibicao = []
-            custo_total_receita = 0.0
-
+            
+            # 1. Prepara os dados para a tabela
+            lista_tabela = []
             for item in st.session_state.itens_receita:
                 dados_ins = df_insumos_ft[df_insumos_ft['id'] == item['insumo_id']].iloc[0]
-                custo_parcial = dados_ins['custo_real_unitario'] * item['quantidade']
-                custo_total_receita += custo_parcial
-
-                lista_exibicao.append({
+                lista_tabela.append({
+                    "id_oculto": item['insumo_id'],
                     "Insumo": dados_ins['nome'],
                     "Marca": dados_ins['marca'],
-                    "Qtd Usada": item['quantidade'],
+                    "Qtd Usada": float(item['quantidade']),
                     "Unidade": dados_ins['unidade'],
-                    "Custo Parcial (R$)": round(custo_parcial, 2)
+                    "Custo Parcial (R$)": float(dados_ins['custo_real_unitario'] * item['quantidade']),
+                    "custo_base": float(dados_ins['custo_real_unitario'])
                 })
 
-            st.dataframe(pd.DataFrame(lista_exibicao), hide_index=True, use_container_width=True)
+            df_tabela = pd.DataFrame(lista_tabela)
+
+            # 2. Tabela interativa (st.data_editor em vez de st.dataframe)
+            df_editado = st.data_editor(
+                df_tabela,
+                column_config={
+                    "id_oculto": None, # Esconde IDs técnicos
+                    "custo_base": None,
+                    "Insumo": st.column_config.Column(disabled=True),
+                    "Marca": st.column_config.Column(disabled=True),
+                    "Unidade": st.column_config.Column(disabled=True),
+                    "Custo Parcial (R$)": st.column_config.NumberColumn(disabled=True, format="R$ %.2f"),
+                    "Qtd Usada": st.column_config.NumberColumn("Qtd Usada (✏️ Edite aqui)", min_value=0.01)
+                },
+                hide_index=True,
+                use_container_width=True,
+                key="editor_itens_receita"
+            )
+
+            # 3. Verifica se você digitou uma nova quantidade
+            mudou = False
+            custo_total_receita = 0.0
+            novos_itens = []
+
+            for index, row in df_editado.iterrows():
+                qtd_editada = row['Qtd Usada']
+                qtd_original = df_tabela.iloc[index]['Qtd Usada']
+                
+                if qtd_editada != qtd_original:
+                    mudou = True
+                
+                custo_total_receita += (row['custo_base'] * qtd_editada)
+                novos_itens.append({"insumo_id": row['id_oculto'], "quantidade": qtd_editada})
+
+            # Se editou algo, atualiza a memória e recarrega para mudar o "Custo Parcial" visualmente na hora
+            if mudou:
+                st.session_state.itens_receita = novos_itens
+                st.rerun()
+
+            # 4. Mostra os totais finais calculados
             st.metric("💰 Custo Total de Produção da Receita", f"R$ {custo_total_receita:.2f}")
             st.metric("🍰 Custo por Unidade / Porção", f"R$ {custo_total_receita / rendimento:.2f}")
+
+            if st.button("💾 Salvar Ficha Técnica Completa", key="btn_salvar_receita_unico"):
 
             if st.button("💾 Salvar Ficha Técnica Completa", key="btn_salvar_receita"):
                 if nome_receita.strip() == "":
