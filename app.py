@@ -443,6 +443,40 @@ if menu == "📋 Fichas Técnicas":
                 st.session_state.itens_receita = novos_itens
                 st.rerun()
 
+        # --- ÁREA PARA REMOVER UM INSUMO ESPECÍFICO ---
+        if len(st.session_state.itens_receita) > 0:
+            st.markdown("---")
+            
+            ids_na_memoria = tuple([item["insumo_id"] for item in st.session_state.itens_receita])
+            
+            if ids_na_memoria:
+                df_nomes_banco = pd.read_sql("SELECT id, nome FROM insumos WHERE id IN %s", conn, params=(ids_na_memoria,))
+                dicionario_nomes = dict(zip(df_nomes_banco['id'], df_nomes_banco['nome']))
+                
+                col_del1, col_del2 = st.columns([3, 1])
+                with col_del1:
+                    posicoes = list(range(len(st.session_state.itens_receita)))
+                    
+                    def formatar_nome_dropdown(i):
+                        id_insumo = st.session_state.itens_receita[i]["insumo_id"]
+                        nome_insumo = dicionario_nomes.get(id_insumo, "Desconhecido")
+                        qtd = st.session_state.itens_receita[i]["quantidade"]
+                        return f"Linha {i+1}: {nome_insumo} (Qtd: {qtd})"
+                        
+                    item_escolhido = st.selectbox(
+                        "Qual ingrediente deseja remover?", 
+                        posicoes, 
+                        format_func=formatar_nome_dropdown
+                    )
+                    
+                with col_del2:
+                    st.write("") 
+                    if st.button("🗑️ Remover Escolhido", use_container_width=True):
+                        st.session_state.itens_receita.pop(item_escolhido)
+                        st.rerun()
+            st.markdown("---")
+        # ----------------------------------------------
+            
             st.metric("💰 Custo Total de Produção da Receita", f"R$ {custo_total_receita:.2f}")
             st.metric("🍰 Custo por Unidade / Porção", f"R$ {custo_total_receita / rendimento:.2f}")
 
