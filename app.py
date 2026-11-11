@@ -476,7 +476,6 @@ if menu == "📋 Fichas Técnicas":
         df_receitas = pd.DataFrame()
         
     if not df_receitas.empty:
-        # Aquela barra de pesquisa fantástica que já usámos nos insumos!
         receita_selecionada = st.selectbox(
             "Pesquisar receita salva:", 
             df_receitas['nome'].tolist(), 
@@ -487,7 +486,6 @@ if menu == "📋 Fichas Técnicas":
         if receita_selecionada:
             dados_rec = df_receitas[df_receitas['nome'] == receita_selecionada].iloc[0]
             
-            # Puxa os ingredientes exatos que guardámos
             query_itens = """
                 SELECT i.nome as "Insumo", i.marca as "Marca", ri.quantidade_usada as "Qtd Usada", 
                        i.unidade as "Unidade", i.custo_real_unitario,
@@ -508,7 +506,7 @@ if menu == "📋 Fichas Técnicas":
                     st.dataframe(
                         df_itens_salvos,
                         column_config={
-                            "custo_real_unitario": None, # Esconde o custo base para não poluir
+                            "custo_real_unitario": None, 
                             "Custo Parcial": st.column_config.NumberColumn("Custo Parcial (R$)", format="R$ %.2f"),
                             "Qtd Usada": st.column_config.NumberColumn("Qtd Usada", format="%.2f")
                         },
@@ -516,19 +514,35 @@ if menu == "📋 Fichas Técnicas":
                         use_container_width=True
                     )
                     
-                    col_tot1, col_tot2, col_tot3 = st.columns(3)
+                    # Dividimos em 4 colunas para caber o botão de Editar
+                    col_tot1, col_tot2, col_tot3, col_tot4 = st.columns([3, 3, 2, 2])
                     with col_tot1:
                         st.info(f"💰 Custo Total: **R$ {custo_total:.2f}**")
                     with col_tot2:
                         st.success(f"🍰 Custo/Unidade: **R$ {custo_unidade:.2f}**")
                     with col_tot3:
-                        if st.button("🗑️ Excluir Receita", key=f"del_rec_{dados_rec['id']}"):
+                        if st.button("✏️ Editar", key=f"edit_rec_{dados_rec['id']}"):
+                            # Preenche os campos lá de cima automaticamente
+                            st.session_state["input_nome_receita_unico"] = dados_rec['nome']
+                            st.session_state["input_rendimento_unico"] = float(dados_rec['rendimento_unidades'])
+                            st.session_state["input_peso_total_unico"] = float(dados_rec['peso_total_g'])
+                            
+                            # Puxa os insumos pelo ID para a lista de edição
+                            query_edit_itens = "SELECT insumo_id, quantidade_usada FROM receita_itens WHERE receita_id = %s"
+                            df_edit = pd.read_sql(query_edit_itens, conn, params=(int(dados_rec['id']),))
+                            
+                            st.session_state.itens_receita = [{"insumo_id": int(r['insumo_id']), "quantidade": float(r['quantidade_usada'])} for _, r in df_edit.iterrows()]
+                            
+                            # Recarrega a página para mostrar os dados preenchidos no topo
+                            st.rerun()
+                    with col_tot4:
+                        if st.button("🗑️ Excluir", key=f"del_rec_{dados_rec['id']}"):
                             cursor = conn.cursor()
                             cursor.execute("DELETE FROM receitas WHERE id = %s", (int(dados_rec['id']),))
                             conn.commit()
                             st.rerun()
             except Exception as e:
-                st.error("Erro ao carregar os ingredientes da receita.")
+                st.error("Erro ao carregar os ingredientes.")
     else:
         st.info("Nenhuma ficha técnica guardada ainda.")
         
