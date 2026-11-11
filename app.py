@@ -116,14 +116,16 @@ if menu == "📦 Insumos":
         df_ins = fetch_data("SELECT id, nome, marca, custo_real_unitario FROM insumos")
         
         if not df_ins.empty:
-            # Cria a lista com a opção de ver todos no topo
-            opcoes_pesquisa = ["Mostrar Todos"] + df_ins['nome'].tolist()
+            # Caixa de seleção vazia por padrão com texto fantasma
+            pesquisa = st.selectbox(
+                "🔍 Buscar Insumo na Tabela:", 
+                df_ins['nome'].tolist(),
+                index=None,
+                placeholder="Pesquisar insumo..."
+            )
             
-            # Caixa de seleção idêntica à de atualização (busca enquanto digita)
-            pesquisa = st.selectbox("🔍 Buscar Insumo na Tabela:", opcoes_pesquisa)
-            
-            # Filtra a tabela se escolher um insumo específico
-            if pesquisa != "Mostrar Todos":
+            # Se você selecionou/digitou algo, ele filtra. Se estiver vazio, mostra a tabela toda.
+            if pesquisa:
                 df_filtrado = df_ins[df_ins['nome'] == pesquisa]
             else:
                 df_filtrado = df_ins
