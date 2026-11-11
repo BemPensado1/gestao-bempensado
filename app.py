@@ -272,7 +272,7 @@ if menu == "🏢 Custos Fixos":
 if menu == "📋 Fichas Técnicas":
     st.header("Montagem das Fichas Técnicas")
     
-    # Garante que as tabelas de receitas existem no banco de dados
+    # 1. Tenta criar as tabelas caso não existam
     try:
         cursor = conn.cursor()
         cursor.execute("""
@@ -296,6 +296,22 @@ if menu == "📋 Fichas Técnicas":
         except:
             pass
 
+    # 2. Força a adição das colunas novas caso a tabela seja a antiga (ignora erro se já existirem)
+    try:
+        cursor = conn.cursor()
+        cursor.execute("ALTER TABLE receitas ADD COLUMN rendimento_unidades NUMERIC DEFAULT 1.0;")
+        conn.commit()
+    except:
+        conn.rollback()
+        
+    try:
+        cursor = conn.cursor()
+        cursor.execute("ALTER TABLE receitas ADD COLUMN peso_total_g NUMERIC DEFAULT 1000.0;")
+        conn.commit()
+    except:
+        conn.rollback()
+
+    # Continuação normal...
     nome_receita = st.text_input("Nome da Receita / Produto (Ex: Brownie Tradicional)", key="input_nome_receita_unico")
     
     col_r1, col_r2 = st.columns(2)
