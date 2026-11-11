@@ -429,7 +429,7 @@ if menu == "📋 Fichas Técnicas":
                             pass
                         st.error(f"Erro ao salvar ficha técnica: {err}")
 
-if st.button("💾 Salvar Ficha Técnica Completa", key="btn_salvar_receita_unico"):
+        if st.button("💾 Salvar Ficha Técnica Completa", key="btn_salvar_receita_unico"):
                 if nome_receita.strip() == "":
                     st.error("Por favor, preencha o Nome da Receita antes de salvar.")
                 else:
