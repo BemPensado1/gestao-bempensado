@@ -270,7 +270,22 @@ if menu == "🏢 Custos Fixos":
         st.info("Não há custos disponíveis para edição.")
 
 if menu == "📋 Fichas Técnicas":
-    st.header("Montagem das Fichas Técnicas")
+    if menu == "📋 Fichas Técnicas":
+    # Criamos colunas para colocar o botão de limpar ao lado do título
+    col_tit1, col_tit2 = st.columns([3, 1])
+    with col_tit1:
+        st.header("Montagem das Fichas Técnicas")
+    with col_tit2:
+        st.write("") # Pequeno espaço para alinhar com o título
+        def limpar_dados():
+            st.session_state["input_nome_receita_unico"] = ""
+            st.session_state["input_rendimento_unico"] = 1.0
+            st.session_state["input_peso_total_unico"] = 1000.0
+            st.session_state.itens_receita = []
+        
+        st.button("✨ Nova Receita / Limpar", on_click=limpar_dados, use_container_width=True)
+    
+    # 1. Tenta criar as tabelas caso não existam (o código continua igual daqui para baixo...)
     
     # 1. Tenta criar as tabelas caso não existam
     try:
