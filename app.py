@@ -470,20 +470,12 @@ if menu == "📋 Fichas Técnicas":
     st.markdown("---")
     st.subheader("📖 As Minhas Receitas Salvas")
     
-    # 1. Criamos as funções que vão preparar a memória ANTES da página recarregar
-    def preparar_edicao(rec_id, nome, rend, peso):
+    # 1. Função super leve, sem base de dados, só para preparar a memória
+    def preparar_edicao(nome, rend, peso, itens):
         st.session_state["input_nome_receita_unico"] = nome
         st.session_state["input_rendimento_unico"] = float(rend)
         st.session_state["input_peso_total_unico"] = float(peso)
-        
-        query_edit = "SELECT insumo_id, quantidade_usada FROM receita_itens WHERE receita_id = %s"
-        df_edit = pd.read_sql(query_edit, conn, params=(int(rec_id),))
-        st.session_state.itens_receita = [{"insumo_id": int(r['insumo_id']), "quantidade": float(r['quantidade_usada'])} for _, r in df_edit.iterrows()]
-    
-    def apagar_receita(rec_id):
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM receitas WHERE id = %s", (int(rec_id),))
-        conn.commit()
+        st.session_state.itens_receita = itens
 
     # 2. Mostramos as receitas salvas
     try:
@@ -502,8 +494,9 @@ if menu == "📋 Fichas Técnicas":
         if receita_selecionada:
             dados_rec = df_receitas[df_receitas['nome'] == receita_selecionada].iloc[0]
             
+            # Adicionamos o "ri.insumo_id" aqui para sabermos exatamente qual o ID a editar
             query_itens = """
-                SELECT i.nome as "Insumo", i.marca as "Marca", ri.quantidade_usada as "Qtd Usada", 
+                SELECT ri.insumo_id, i.nome as "Insumo", i.marca as "Marca", ri.quantidade_usada as "Qtd Usada", 
                        i.unidade as "Unidade", i.custo_real_unitario,
                        (ri.quantidade_usada * i.custo_real_unitario) as "Custo Parcial"
                 FROM receita_itens ri
@@ -522,6 +515,7 @@ if menu == "📋 Fichas Técnicas":
                     st.dataframe(
                         df_itens_salvos,
                         column_config={
+                            "insumo_id": None, # Esconde o ID técnico
                             "custo_real_unitario": None, 
                             "Custo Parcial": st.column_config.NumberColumn("Custo Parcial (R$)", format="R$ %.2f"),
                             "Qtd Usada": st.column_config.NumberColumn("Qtd Usada", format="%.2f")
@@ -530,7 +524,13 @@ if menu == "📋 Fichas Técnicas":
                         use_container_width=True
                     )
                     
-                    # 3. Botões com on_click para evitar o erro de recarregamento
+                    # Preparamos a "marmita" de ingredientes para enviar para o botão de edição
+                    itens_para_editar = [
+                        {"insumo_id": int(row['insumo_id']), "quantidade": float(row['Qtd Usada'])} 
+                        for _, row in df_itens_salvos.iterrows()
+                    ]
+                    
+                    # 3. Botões na base da receita
                     col_tot1, col_tot2, col_tot3, col_tot4 = st.columns([3, 3, 2, 2])
                     with col_tot1:
                         st.info(f"💰 Custo Total: **R$ {custo_total:.2f}**")
@@ -541,15 +541,14 @@ if menu == "📋 Fichas Técnicas":
                             "✏️ Editar", 
                             key=f"edit_rec_{dados_rec['id']}", 
                             on_click=preparar_edicao, 
-                            args=(dados_rec['id'], dados_rec['nome'], dados_rec['rendimento_unidades'], dados_rec['peso_total_g'])
+                            args=(dados_rec['nome'], dados_rec['rendimento_unidades'], dados_rec['peso_total_g'], itens_para_editar)
                         )
                     with col_tot4:
-                        st.button(
-                            "🗑️ Excluir", 
-                            key=f"del_rec_{dados_rec['id']}", 
-                            on_click=apagar_receita, 
-                            args=(dados_rec['id'],)
-                        )
+                        if st.button("🗑️ Excluir", key=f"del_rec_{dados_rec['id']}"):
+                            cursor = conn.cursor()
+                            cursor.execute("DELETE FROM receitas WHERE id = %s", (int(dados_rec['id']),))
+                            conn.commit()
+                            st.rerun()
             except Exception as e:
                 st.error(f"Erro ao carregar os ingredientes: {e}")
     else:
