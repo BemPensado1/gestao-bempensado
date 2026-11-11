@@ -296,13 +296,13 @@ if menu == "📋 Fichas Técnicas":
         except:
             pass
 
-    nome_receita = st.text_input("Nome da Receita / Produto (Ex: Brownie Tradicional)", key="input_nome_receita")
+    nome_receita = st.text_input("Nome da Receita / Produto (Ex: Brownie Tradicional)", key="input_nome_receita_unico")
     
     col_r1, col_r2 = st.columns(2)
     with col_r1:
-        rendimento = st.number_input("Rendimento (Quantas unidades ou porções rende?)", min_value=1.0, value=1.0, key="input_rendimento")
+        rendimento = st.number_input("Rendimento (Quantas unidades ou porções rende?)", min_value=1.0, value=1.0, key="input_rendimento_unico")
     with col_r2:
-        peso_total = st.number_input("Peso Total Final da Receita (em gramas ou ml)", min_value=0.1, value=1000.0, key="input_peso_total")
+        peso_total = st.number_input("Peso Total Final da Receita (em gramas ou ml)", min_value=0.1, value=1000.0, key="input_peso_total_unico")
 
     st.markdown("---")
     st.subheader("🛒 Selecionar Insumos para a Receita")
@@ -319,7 +319,6 @@ if menu == "📋 Fichas Técnicas":
     if df_insumos_ft.empty:
         st.warning("⚠️ Cadastre seus insumos na aba 'Insumos' antes de montar as fichas técnicas!")
     else:
-        # Usamos uma session_state para gerir os itens adicionados dinamicamente
         if 'itens_receita' not in st.session_state:
             st.session_state.itens_receita = []
 
@@ -328,14 +327,14 @@ if menu == "📋 Fichas Técnicas":
             insumo_escolhido = st.selectbox(
                 "Insumo", 
                 df_insumos_ft.apply(lambda r: f"{r['id']} - {r['nome']} ({r['marca']})", axis=1).tolist(),
-                key="select_insumo_ft"
+                key="select_insumo_ft_unico"
             )
         with col_sel2:
-            qtd_usada = st.number_input("Qtd usada (g, ml ou un)", min_value=0.01, value=100.0, key="input_qtd_usada")
+            qtd_usada = st.number_input("Qtd usada (g, ml ou un)", min_value=0.01, value=100.0, key="input_qtd_usada_unico")
         with col_sel3:
             st.write("")
             st.write("")
-            if st.button("➕ Adicionar", key="btn_add_insumo"):
+            if st.button("➕ Adicionar", key="btn_add_insumo_unico"):
                 ins_id = int(insumo_escolhido.split(" - ")[0])
                 st.session_state.itens_receita.append({"insumo_id": ins_id, "quantidade": qtd_usada})
                 st.success("Item adicionado à lista!")
@@ -358,6 +357,7 @@ if menu == "📋 Fichas Técnicas":
 
             df_tabela = pd.DataFrame(lista_tabela)
 
+            # Tabela interativa onde você pode digitar a Qtd Usada
             df_editado = st.data_editor(
                 df_tabela,
                 column_config={
@@ -371,7 +371,7 @@ if menu == "📋 Fichas Técnicas":
                 },
                 hide_index=True,
                 use_container_width=True,
-                key="editor_itens_receita"
+                key="editor_itens_receita_unico"
             )
 
             mudou = False
@@ -395,41 +395,7 @@ if menu == "📋 Fichas Técnicas":
             st.metric("💰 Custo Total de Produção da Receita", f"R$ {custo_total_receita:.2f}")
             st.metric("🍰 Custo por Unidade / Porção", f"R$ {custo_total_receita / rendimento:.2f}")
 
-            if st.button("💾 Salvar Ficha Técnica Completa", key="btn_salvar_receita_unico"):
-                if nome_receita.strip() == "":
-                    st.error("Por favor, preencha o Nome da Receita antes de salvar.")
-                else:
-                    try:
-                        cursor = conn.cursor()
-                        cursor.execute("""
-                            INSERT INTO receitas (nome, rendimento_unidades, peso_total_g) 
-                            VALUES (%s, %s, %s)
-                            ON CONFLICT (nome) DO UPDATE 
-                            SET rendimento_unidades = EXCLUDED.rendimento_unidades, peso_total_g = EXCLUDED.peso_total_g
-                            RETURNING id;
-                        """, (nome_receita, rendimento, peso_total))
-                        rec_id = cursor.fetchone()[0]
-
-                        cursor.execute("DELETE FROM receita_itens WHERE receita_id = %s", (rec_id,))
-
-                        for item in st.session_state.itens_receita:
-                            cursor.execute("""
-                                INSERT INTO receita_itens (receita_id, insumo_id, quantidade_usada)
-                                VALUES (%s, %s, %s)
-                            """, (rec_id, item['insumo_id'], item['quantidade']))
-
-                        conn.commit()
-                        st.success(f"Ficha técnica da receita '{nome_receita}' salva com sucesso!")
-                        st.session_state.itens_receita = []
-                        st.rerun()
-                    except Exception as err:
-                        try:
-                            conn.rollback()
-                        except:
-                            pass
-                        st.error(f"Erro ao salvar ficha técnica: {err}")
-
-        if st.button("💾 Salvar Ficha Técnica Completa", key="btn_salvar_receita_unico"):
+            if st.button("💾 Salvar Ficha Técnica Completa", key="btn_salvar_receita_definitivo"):
                 if nome_receita.strip() == "":
                     st.error("Por favor, preencha o Nome da Receita antes de salvar.")
                 else:
