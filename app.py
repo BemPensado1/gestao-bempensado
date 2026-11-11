@@ -114,7 +114,18 @@ if menu == "📦 Insumos":
 
     with col2:
         df_ins = fetch_data("SELECT id, nome, marca, custo_real_unitario FROM insumos")
-        st.dataframe(df_ins)
+        
+        # Cria a barra de pesquisa
+        pesquisa = st.text_input("🔍 Pesquisar Insumo na Tabela:")
+        
+        # Filtra a tabela se digitar alguma coisa
+        if pesquisa:
+            df_filtrado = df_ins[df_ins['nome'].str.contains(pesquisa, case=False, na=False)]
+        else:
+            df_filtrado = df_ins
+            
+        # Exibe a tabela filtrada
+        st.dataframe(df_filtrado, hide_index=True, use_container_width=True)
 
     # --- NOVA ÁREA: EDITAR E EXCLUIR ---
     st.markdown("---")
