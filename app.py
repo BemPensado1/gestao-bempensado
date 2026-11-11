@@ -566,7 +566,7 @@ elif menu == "💲 Precificação Inteligente":
         
         # Cálculo dos Custos
         df_custos = fetch_data("SELECT ri.quantidade_usada, i.custo_real_unitario FROM receita_itens ri JOIN insumos i ON ri.insumo_id = i.id WHERE ri.receita_id = %s", (int(rec_data["id"]),))
-        cmv_unit = (df_custos["quantidade"] * df_custos["custo_real_unitario"]).sum() / float(rec_data["rendimento"]) if not df_custos.empty else 0
+        cmv_unit = (df_custos["quantidade_usada"] * df_custos["custo_real_unitario"]).sum() / float(rec_data["rendimento"]) if not df_custos.empty else 0
         
         total_cf = float(fetch_data("SELECT SUM(valor_mensal) as t FROM custos_fixos").iloc[0]["t"] or 0)
         hr_mes = fetch_data("SELECT horas_trabalhadas_mes FROM config_negocio").iloc[0]["horas_trabalhadas_mes"]
