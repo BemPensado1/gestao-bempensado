@@ -270,7 +270,6 @@ if menu == "🏢 Custos Fixos":
         st.info("Não há custos disponíveis para edição.")
 
 if menu == "📋 Fichas Técnicas":
-    if menu == "📋 Fichas Técnicas":
     # Criamos colunas para colocar o botão de limpar ao lado do título
     col_tit1, col_tit2 = st.columns([3, 1])
     with col_tit1:
@@ -282,6 +281,8 @@ if menu == "📋 Fichas Técnicas":
             st.session_state["input_rendimento_unico"] = 1.0
             st.session_state["input_peso_total_unico"] = 1000.0
             st.session_state.itens_receita = []
+        
+        st.button("✨ Nova Receita / Limpar", on_click=limpar_dados, use_container_width=True)
         
         st.button("✨ Nova Receita / Limpar", on_click=limpar_dados, use_container_width=True)
     
