@@ -311,6 +311,14 @@ if menu == "📋 Fichas Técnicas":
     except:
         conn.rollback()
 
+    # Força a adição da coluna nova na tabela de itens
+    try:
+        cursor = conn.cursor()
+        cursor.execute("ALTER TABLE receita_itens ADD COLUMN quantidade_usada NUMERIC DEFAULT 0;")
+        conn.commit()
+    except:
+        conn.rollback()
+
     # Remove as colunas antigas para limpar a tabela e parar os erros
     try:
         cursor = conn.cursor()
