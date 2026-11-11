@@ -296,7 +296,7 @@ if menu == "📋 Fichas Técnicas":
         except:
             pass
 
-    # 2. Força a adição das colunas novas caso a tabela seja a antiga (ignora erro se já existirem)
+    # 2. Força a adição das colunas novas e limpa as antigas que estão a bloquear o sistema
     try:
         cursor = conn.cursor()
         cursor.execute("ALTER TABLE receitas ADD COLUMN rendimento_unidades NUMERIC DEFAULT 1.0;")
@@ -307,6 +307,16 @@ if menu == "📋 Fichas Técnicas":
     try:
         cursor = conn.cursor()
         cursor.execute("ALTER TABLE receitas ADD COLUMN peso_total_g NUMERIC DEFAULT 1000.0;")
+        conn.commit()
+    except:
+        conn.rollback()
+
+    # Remove as colunas antigas para limpar a tabela e parar os erros
+    try:
+        cursor = conn.cursor()
+        cursor.execute("ALTER TABLE receitas DROP COLUMN IF EXISTS rendimento CASCADE;")
+        cursor.execute("ALTER TABLE receitas DROP COLUMN IF EXISTS peso_total CASCADE;")
+        cursor.execute("ALTER TABLE receitas DROP COLUMN IF EXISTS custo_total CASCADE;")
         conn.commit()
     except:
         conn.rollback()
