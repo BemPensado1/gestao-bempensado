@@ -712,7 +712,7 @@ elif menu == "💲 Precificação Inteligente":
         res4.metric("🛵 iFood", f"R$ {p_ifood:.2f}")
         res4.metric("🛒 iFood", f"R$ {p_ifood:.2f}")
         
-st.markdown("---")
+        st.markdown("---")
         st.markdown("### 💾 Preços Praticados (Salvar no Sistema)")
         st.caption("Ajuste ou arredonde os valores abaixo para o preço final de venda e clique em salvar.")
 
