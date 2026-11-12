@@ -871,12 +871,12 @@ if menu == "🛒 Estoque & Compras":
         if df_compras.empty:
             st.success("🎉 Tudo em dia! Você não tem nenhum item abaixo do estoque mínimo.")
         else:
-        st.warning(f"Atenção: Você tem {len(df_compras)} itens precisando de reposição!")
-        st.dataframe(
+            st.warning(f"Atenção: Você tem {len(df_compras)} itens precisando de reposição!")
+            st.dataframe(
             df_compras[['nome', 'marca', 'estoque_atual', 'estoque_minimo', 'unidade']],
             hide_index=True,
             use_container_width=True
-        )
+            )
 
 if menu == "Preços Oficiais":
     st.header("📋 Histórico de Preços Oficiais Praticados")
