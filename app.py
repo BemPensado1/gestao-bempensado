@@ -39,6 +39,7 @@ def init_connection():
 conn = init_connection()
 
 # Função para garantir que as tabelas existam
+@st.cache_resource
 def create_tables():
     cursor = conn.cursor()
     cursor.execute("""
