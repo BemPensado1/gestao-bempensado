@@ -62,8 +62,7 @@ def create_tables():
 create_tables()
 
 # --- MENU ---
-menu = st.sidebar.radio("Navegação", ["🏠 Início", "📦 Insumos", "🛒 Estoque & Compras", "🏢 Custos Fixos", "📋 Fichas Técnicas", "💲 Precificação Inteligente", "💸 Fluxo de Caixa", "📊 Ponto de Equilíbrio & DRE"], label_visibility="collapsed")
-
+menu = st.sidebar.radio("Navegação", ["Início", "Insumos", "Custos Fixos", "Fichas Técnicas", "Precificação Inteligente", "Preços Oficiais", "Fluxo de Caixa", "Ponto de Equilíbrio & DRE"])
 # --- ÁREA DE SEGURANÇA E BACKUP ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("🔒 Segurança")
@@ -878,3 +877,15 @@ if menu == "🛒 Estoque & Compras":
                 hide_index=True,
                 use_container_width=True
             )
+            elif menu == "Preços Oficiais":
+    st.header("📋 Histórico de Preços Oficiais Praticados")
+    st.caption("Consulte aqui todos os preços oficiais gravados para os seus doces e os custos base da época.")
+
+    # Busca todos os dados salvos na tabela precos_praticados
+    df_precos = fetch_data("SELECT * FROM precos_praticados ORDER BY data_atualizacao DESC")
+
+    if df_precos.empty:
+        st.info("Ainda não há preços oficiais gravados. Vá à aba 'Precificação Inteligente' e clique em 'Gravar Preços Oficiais' nos seus doces.")
+    else:
+        # Exibe a tabela de forma bonita e interativa
+        st.dataframe(df_precos, use_container_width=True)
