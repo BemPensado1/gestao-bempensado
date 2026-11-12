@@ -746,7 +746,7 @@ elif menu == "💲 Precificação Inteligente":
             
             try:
                 with conn.cursor() as cur:
-                    cur.execute(query_salvar, (produto_selecionado, v_pix, v_cartao, v_vr, v_ifood, custo_total))
+                    cur.execute(query_salvar, (rec_sel, v_pix, v_cartao, v_vr, v_ifood, custo_total))
                 conn.commit()
                 st.success("Preços gravados com sucesso! O sistema agora monitora a margem deste produto.")
             except Exception as e:
