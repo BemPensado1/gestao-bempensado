@@ -114,7 +114,11 @@ def run_query(query, params=()):
         cur.execute(query, params)
         conn.commit()
 
+@st.cache_data(ttl=30, show_spinner=False)
 def fetch_data(query, params=()):
+    # Transforma listas em tuplas para a memória funcionar perfeitamente
+    if isinstance(params, list):
+        params = tuple(params)
     return pd.read_sql_query(query, conn, params=params)
 
 # --- MÓDULOS ---
