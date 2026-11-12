@@ -710,8 +710,7 @@ elif menu == "💲 Precificação Inteligente":
         res2.metric("💳 Maquininha", f"R$ {p_cartao:.2f}")
         res3.metric("🍽️ Vale Refeição", f"R$ {p_vr:.2f}")
         res4.metric("🛵 iFood", f"R$ {p_ifood:.2f}")
-        res4.metric("🛒 iFood", f"R$ {p_ifood:.2f}")
-        
+                
         st.markdown("---")
         st.markdown("### 💾 Preços Praticados (Salvar no Sistema)")
         st.caption("Ajuste ou arredonde os valores abaixo para o preço final de venda e clique em salvar.")
