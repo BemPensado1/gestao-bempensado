@@ -64,47 +64,47 @@ create_tables()
 menu = st.sidebar.radio("Navegação", ["🏠 Início", "📦 Insumos", "🛒 Estoque & Compras", "🏢 Custos Fixos", "📋 Fichas Técnicas", "💲 Precificação Inteligente", "💸 Fluxo de Caixa", "📊 Ponto de Equilíbrio & DRE"], label_visibility="collapsed")
 
 # --- ÁREA DE SEGURANÇA E BACKUP ---
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("🔒 Segurança")
-    
-    if st.sidebar.button("💾 Preparar Backup", use_container_width=True):
-        with st.spinner("Empacotando todo o sistema..."):
-            try:
-                import io
-                
-                # Busca as tabelas no banco de dados
-                query_tabelas = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
-                df_tabelas = pd.read_sql(query_tabelas, conn)
-                
-                # Cria o Excel
-                output = io.BytesIO()
-                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    for tabela in df_tabelas['table_name']:
-                        df_temp = pd.read_sql(f"SELECT * FROM {tabela}", conn)
-                        
-                        # A MÁGICA: Converte tudo para texto para o Excel não travar
-                        df_temp = df_temp.astype(str)
-                        
-                        nome_aba = tabela[:31] 
-                        df_temp.to_excel(writer, index=False, sheet_name=nome_aba)
-                
-                # Guarda o arquivo pronto na memória do sistema
-                st.session_state['arquivo_backup'] = output.getvalue()
-                
-            except Exception as e:
-                st.sidebar.error(f"Erro ao gerar: {e}")
+st.sidebar.markdown("---")
+st.sidebar.subheader("🔒 Segurança")
 
-    # Se o arquivo estiver pronto, o botão de baixar aparece e fica fixo!
-    if 'arquivo_backup' in st.session_state:
-        st.sidebar.success("Arquivo pronto!")
-        st.sidebar.download_button(
-            label="📥 Clique para Baixar o Excel",
-            data=st.session_state['arquivo_backup'],
-            file_name="Backup_Completo_Bem_Pensado.xlsx",
-            mime="application/vnd.ms-excel",
-            use_container_width=True,
-            type="primary"
-        )
+if st.sidebar.button("💾 Preparar Backup", use_container_width=True):
+    with st.spinner("Empacotando todo o sistema..."):
+        try:
+            import io
+            
+            # Busca as tabelas no banco de dados
+            query_tabelas = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
+            df_tabelas = pd.read_sql(query_tabelas, conn)
+            
+            # Cria o Excel
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                for tabela in df_tabelas['table_name']:
+                    df_temp = pd.read_sql(f"SELECT * FROM {tabela}", conn)
+                    
+                    # A MÁGICA: Converte tudo para texto para o Excel não travar
+                    df_temp = df_temp.astype(str)
+                    
+                    nome_aba = tabela[:31] 
+                    df_temp.to_excel(writer, index=False, sheet_name=nome_aba)
+            
+            # Guarda o arquivo pronto na memória do sistema
+            st.session_state['arquivo_backup'] = output.getvalue()
+            
+        except Exception as e:
+            st.sidebar.error(f"Erro ao gerar: {e}")
+
+# Se o arquivo estiver pronto, o botão de baixar aparece e fica fixo!
+if 'arquivo_backup' in st.session_state:
+    st.sidebar.success("Arquivo pronto!")
+    st.sidebar.download_button(
+        label="📥 Clique para Baixar o Excel",
+        data=st.session_state['arquivo_backup'],
+        file_name="Backup_Completo_Bem_Pensado.xlsx",
+        mime="application/vnd.ms-excel",
+        use_container_width=True,
+        type="primary"
+    )
 
 if menu == "🏠 Início":
     st.title("🧁 Sistema de Gestão Bem Pensado")
