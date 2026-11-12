@@ -710,7 +710,41 @@ elif menu == "💲 Precificação Inteligente":
         res2.metric("💳 Maquininha", f"R$ {p_cartao:.2f}")
         res3.metric("🍽️ Vale Refeição", f"R$ {p_vr:.2f}")
         res4.metric("🛵 iFood", f"R$ {p_ifood:.2f}")
+        res4.metric("🛒 iFood", f"R$ {p_ifood:.2f}")
+        
+st.markdown("---")
+        st.markdown("### 💾 Preços Praticados (Salvar no Sistema)")
+        st.caption("Ajuste ou arredonde os valores abaixo para o preço final de venda e clique em salvar.")
 
+        # Cria caixas para você digitar o preço final, já sugerindo o valor calculado
+        col_v1, col_v2, col_v3, col_v4 = st.columns(4)
+        v_pix = col_v1.number_input("Venda Pix (R$)", value=float(p_pix), step=0.50)
+        v_cartao = col_v2.number_input("Venda Maquininha (R$)", value=float(p_cartao), step=0.50)
+        v_vr = col_v3.number_input("Venda VR (R$)", value=float(p_vr), step=0.50)
+        v_ifood = col_v4.number_input("Venda iFood (R$)", value=float(p_ifood), step=0.50)
+
+        if st.button("Gravar Preços Oficiais"):
+            query_salvar = """
+            INSERT INTO precos_praticados (produto_nome, preco_pix, preco_cartao, preco_vr, preco_ifood, custo_base, data_atualizacao)
+            VALUES (%s, %s, %s, %s, %s, %s, NOW())
+            ON CONFLICT (produto_nome) 
+            DO UPDATE SET 
+                preco_pix = EXCLUDED.preco_pix,
+                preco_cartao = EXCLUDED.preco_cartao,
+                preco_vr = EXCLUDED.preco_vr,
+                preco_ifood = EXCLUDED.preco_ifood,
+                custo_base = EXCLUDED.custo_base,
+                data_atualizacao = NOW();
+            """
+            
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(query_salvar, (produto_selecionado, v_pix, v_cartao, v_vr, v_ifood, custo_total))
+                conn.commit()
+                st.success("Preços gravados com sucesso! O sistema agora monitora a margem deste produto.")
+            except Exception as e:
+                st.error(f"Erro ao salvar: {e}")
+                
 elif menu == "💸 Fluxo de Caixa":
     st.header("Registrar Entradas e Saídas")
     col1, col2 = st.columns([1, 2])
