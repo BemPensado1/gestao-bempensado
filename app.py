@@ -876,7 +876,7 @@ if menu == "🛒 Estoque & Compras":
                 df_compras[['nome', 'marca', 'estoque_atual', 'estoque_minimo', 'unidade']], 
                 hide_index=True,
                 use_container_width=True
-            )
+            
         if menu == "Preços Oficiais":
             st.header("📋 Histórico de Preços Oficiais Praticados")
             st.caption("Consulte aqui todos os preços oficiais gravados para os seus doces e os custos base da época.")
