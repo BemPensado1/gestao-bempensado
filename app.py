@@ -63,6 +63,40 @@ create_tables()
 # --- MENU ---
 menu = st.sidebar.radio("Navegação", ["🏠 Início", "📦 Insumos", "🛒 Estoque & Compras", "🏢 Custos Fixos", "📋 Fichas Técnicas", "💲 Precificação Inteligente", "💸 Fluxo de Caixa", "📊 Ponto de Equilíbrio & DRE"], label_visibility="collapsed")
 
+# --- ÁREA DE SEGURANÇA E BACKUP ---
+st.sidebar.markdown("---")
+st.sidebar.subheader("🔒 Segurança")
+
+if st.sidebar.button("💾 Gerar Backup Completo", use_container_width=True):
+    with st.spinner("Empacotando todo o sistema..."):
+        try:
+            import io
+            
+            # Busca o nome de todas as tabelas que existem no seu banco de dados
+            query_tabelas = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
+            df_tabelas = pd.read_sql(query_tabelas, conn)
+            
+            # Cria o arquivo Excel na memória
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                # Roda por todas as tabelas e cria uma aba para cada uma
+                for tabela in df_tabelas['table_name']:
+                    df_temp = pd.read_sql(f"SELECT * FROM {tabela}", conn)
+                    nome_aba = tabela[:31] 
+                    df_temp.to_excel(writer, index=False, sheet_name=nome_aba)
+            
+            # Exibe o botão final para baixar o arquivo
+            st.sidebar.download_button(
+                label="📥 Baixar Excel com Tudo",
+                data=output.getvalue(),
+                file_name="Backup_Completo_Bem_Pensado.xlsx",
+                mime="application/vnd.ms-excel",
+                use_container_width=True,
+                type="primary"
+            )
+        except Exception as e:
+            st.sidebar.error(f"Erro ao gerar backup: {e}")
+
 if menu == "🏠 Início":
     st.title("🧁 Sistema de Gestão Bem Pensado")
     st.write("Bem-vinda ao seu centro de controle! Selecione uma opção no menu lateral para gerir as suas receitas e custos.")# Funções auxiliares
