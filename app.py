@@ -685,24 +685,25 @@ elif menu == "💲 Precificação Inteligente":
         
         margem = st.slider("Margem de Lucro Desejada (%)", min_value=0.0, max_value=100.0, value=20.0, step=1.0)
         
-        c1, c2, c3, c4 = st.columns(4)
+        c1, c2, c3, c4, c5 = st.columns(5)
         taxa_pix = c1.number_input("Taxa Pix/Dinheiro (%)", value=0.0, step=0.5)
         taxa_cartao = c2.number_input("Taxa Maquininha (%)", value=3.5, step=0.5)
         taxa_vr = c3.number_input("Taxa VR/Alelo (%)", value=6.5, step=0.5)
         taxa_ifood = c4.number_input("Taxa iFood (%)", value=27.0, step=0.5)
-        
+        imposto_me = c5.number_input("Imposto ME (%)", value=4.0, step=0.5)
+
         st.markdown("---")
         st.markdown("### 3. Preços Mínimos Sugeridos")
         st.caption("Cobrando esses valores, sua margem de lucro em dinheiro será exatamente a mesma em qualquer canal, pois as taxas já estão cobertas.")
-        
-        def calc_preco(custo, mrg, tx):
-            fator = 1 - ((mrg + tx) / 100)
+
+        def calc_preco(custo, mrg, tx, imp):
+            fator = 1 - ((mrg + tx + imp) / 100)
             return (custo / fator) if fator > 0 else 0
-            
-        p_pix = calc_preco(custo_total, float(margem), float(taxa_pix))
-        p_cartao = calc_preco(custo_total, float(margem), float(taxa_cartao))
-        p_vr = calc_preco(custo_total, float(margem), float(taxa_vr))
-        p_ifood = calc_preco(custo_total, float(margem), float(taxa_ifood))
+
+        p_pix = calc_preco(custo_total, float(margem), float(taxa_pix), float(imposto_me))
+        p_cartao = calc_preco(custo_total, float(margem), float(taxa_cartao), float(imposto_me))
+        p_vr = calc_preco(custo_total, float(margem), float(taxa_vr), float(imposto_me))
+        p_ifood = calc_preco(custo_total, float(margem), float(taxa_ifood), float(imposto_me))
         
         res1, res2, res3, res4 = st.columns(4)
         res1.metric("💰 Pix / Dinheiro", f"R$ {p_pix:.2f}")
