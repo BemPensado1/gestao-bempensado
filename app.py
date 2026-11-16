@@ -67,9 +67,9 @@ menu = st.sidebar.radio("Navegação", [
     "📦 Insumos", 
     "🏢 Custos Fixos", 
     "📋 Fichas Técnicas", 
-    "💲 Precificação Inteligente", 
-    "Precificação por Markup", 
-    "Preços Oficiais",
+    "💲 Precificação por CMV", 
+    "📈 Precificação por Markup", 
+    "📋 Preços Oficiais",
     "🛒 Estoque & Compras",
     "💸 Fluxo de Caixa", 
     "📊 Ponto de Equilíbrio & DRE"
@@ -659,7 +659,7 @@ if menu == "📋 Fichas Técnicas":
     else:
         st.info("Nenhuma ficha técnica guardada ainda.")
         
-elif menu == "💲 Precificação Inteligente":
+elif menu == "💲 Precificação por CMV":
     st.header("Simulador de Preço por Canal de Venda")
     receitas_df = fetch_data("SELECT * FROM receitas")
     
@@ -887,7 +887,7 @@ if menu == "🛒 Estoque & Compras":
             hide_index=True,
             use_container_width=True)
 
-if menu == "Preços Oficiais":
+if menu == "📋 Preços Oficiais":
     st.header("📋 Histórico de Preços Oficiais Praticados")
     st.caption("Consulte aqui todos os preços oficiais gravados para os seus doces e os custos base da época.")
 
@@ -898,7 +898,7 @@ if menu == "Preços Oficiais":
     else:
         st.dataframe(df_precos, use_container_width=True)
 
-elif menu == "Precificação por Markup":
+elif menu == "📈 Precificação por Markup":
         st.header("📈 Precificação por Markup (Método Planilha)")
         st.caption("Aplica o seu Índice de Markup apenas sobre a receita e adiciona embalagens e frete por fora, protegendo tudo com as taxas dos canais.")
 
