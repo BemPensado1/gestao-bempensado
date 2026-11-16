@@ -689,13 +689,15 @@ elif menu == "💲 Precificação por CMV":
         col_txt.info(f"**Custo Total (Para não ter prejuízo): R$ {custo_total:.2f}**")
         
         st.markdown("---")
-        st.markdown("### 2. Configure suas Taxas Atuais")
-        st.write("Altere as porcentagens livremente abaixo. Os preços sugeridos serão recalculados na hora.")
+        st.markdown("### 2. Configure suas Taxas e Frete")
+        st.write("Altere os valores livremente abaixo. Os preços sugeridos serão blindados na hora.")
         
-        margem = st.slider("Margem de Lucro Desejada (%)", min_value=0.0, max_value=100.0, value=20.0, step=1.0)
+        c_m, c_f = st.columns(2)
+        margem = c_m.slider("Margem de Lucro Desejada (%)", min_value=0.0, max_value=100.0, value=20.0, step=1.0)
+        frete_ifood = c_f.number_input("Frete Embutido (Só iFood) R$", value=3.50, step=0.50)
         
         c1, c2, c3, c4, c5 = st.columns(5)
-        taxa_pix = c1.number_input("Taxa Pix/Dinheiro (%)", value=0.0, step=0.5)
+        taxa_pix = c1.number_input("Taxa Pix (%)", value=0.0, step=0.5)
         taxa_cartao = c2.number_input("Taxa Maquininha (%)", value=3.5, step=0.5)
         taxa_vr = c3.number_input("Taxa VR/Alelo (%)", value=6.5, step=0.5)
         taxa_ifood = c4.number_input("Taxa iFood (%)", value=27.0, step=0.5)
@@ -703,28 +705,29 @@ elif menu == "💲 Precificação por CMV":
 
         st.markdown("---")
         st.markdown("### 3. Preços Mínimos Sugeridos")
-        st.caption("Cobrando esses valores, sua margem de lucro em dinheiro será exatamente a mesma em qualquer canal, pois as taxas já estão cobertas.")
+        st.caption("Cobrando esses valores, sua margem de lucro em dinheiro será exatamente a mesma em qualquer canal, pois as taxas e o frete já estão cobertos.")
 
-        def calc_preco(custo, mrg, tx, imp):
+        # Fórmula blindada: Custo (Total + Extra) / Fator das Taxas
+        def calc_preco(custo, mrg, tx, imp, custo_extra=0.0):
             fator = 1 - ((mrg + tx + imp) / 100)
-            return (custo / fator) if fator > 0 else 0
+            return ((custo + custo_extra) / fator) if fator > 0 else 0
 
         p_pix = calc_preco(custo_total, float(margem), float(taxa_pix), float(imposto_me))
         p_cartao = calc_preco(custo_total, float(margem), float(taxa_cartao), float(imposto_me))
         p_vr = calc_preco(custo_total, float(margem), float(taxa_vr), float(imposto_me))
-        p_ifood = calc_preco(custo_total, float(margem), float(taxa_ifood), float(imposto_me))
+        # O iFood recebe o custo do frete adicionado antes da multiplicação das taxas
+        p_ifood = calc_preco(custo_total, float(margem), float(taxa_ifood), float(imposto_me), float(frete_ifood))
         
         res1, res2, res3, res4 = st.columns(4)
         res1.metric("💰 Pix / Dinheiro", f"R$ {p_pix:.2f}")
         res2.metric("💳 Maquininha", f"R$ {p_cartao:.2f}")
         res3.metric("🍽️ Vale Refeição", f"R$ {p_vr:.2f}")
-        res4.metric("🛵 iFood", f"R$ {p_ifood:.2f}")
+        res4.metric("🛵 iFood (c/ frete)", f"R$ {p_ifood:.2f}")
                 
         st.markdown("---")
         st.markdown("### 💾 Preços Praticados (Salvar no Sistema)")
         st.caption("Ajuste ou arredonde os valores abaixo para o preço final de venda e clique em salvar.")
 
-        # Cria caixas para você digitar o preço final, já sugerindo o valor calculado
         col_v1, col_v2, col_v3, col_v4 = st.columns(4)
         v_pix = col_v1.number_input("Venda Pix (R$)", value=float(p_pix), step=0.50)
         v_cartao = col_v2.number_input("Venda Maquininha (R$)", value=float(p_cartao), step=0.50)
@@ -744,15 +747,6 @@ elif menu == "💲 Precificação por CMV":
                 custo_base = EXCLUDED.custo_base,
                 data_atualizacao = NOW();
             """
-            
-            try:
-                with conn.cursor() as cur:
-                    cur.execute(query_salvar, (rec_sel, v_pix, v_cartao, v_vr, v_ifood, custo_total))
-                conn.commit()
-                st.success("Preços gravados com sucesso! O sistema agora monitora a margem deste produto.")
-            except Exception as e:
-                st.error(f"Erro ao salvar: {e}")
-            
             try:
                 with conn.cursor() as cur:
                     cur.execute(query_salvar, (rec_sel, v_pix, v_cartao, v_vr, v_ifood, custo_total))
@@ -765,7 +759,7 @@ elif menu == "💲 Precificação por CMV":
     st.subheader("💾 Salvar Sugestão CMV")
     st.write("Guarde o valor gerado por este método para comparar na vitrine oficial.")
     
-    # Campo para você digitar o valor final que a calculadora CMV de cima sugeriu
+    # Campo para você digitar o valor final que a calculadora CMV de cima sugeriu (recomendo usar o valor do VR para ancorar)
     valor_cmv_salvar = st.number_input("Digite o Preço Sugerido (CMV) para salvar:", min_value=0.0, step=0.50, format="%.2f")
     
     if st.button("💾 Enviar para a Vitrine"):
