@@ -900,17 +900,17 @@ elif menu == "📈 Precificação por Markup":
     st.header("📈 Precificação Inteligente (Método Planilha)")
     st.caption("Calcula o preço perfeito cruzando os custos da receita com a sua meta de vendas e lucro.")
 
-    # 1. Puxa as receitas do banco
     df_receitas = fetch_data("SELECT id, nome, rendimento_unidades FROM receitas ORDER BY nome ASC")
     
     if df_receitas.empty:
         st.warning("Nenhuma ficha técnica encontrada. Vá à aba 'Fichas Técnicas' para criar uma.")
     else:
-        # Seleção do Doce
         produto_sel = st.selectbox("Selecione o Doce para precificar:", df_receitas['nome'].tolist())
         rec_data = df_receitas[df_receitas['nome'] == produto_sel].iloc[0]
+        rendimento = float(rec_data["rendimento_unidades"])
         
-        # Puxa os custos detalhados para mostrar na hora!
+        st.markdown(f"### 🧁 {produto_sel} (Rende {int(rendimento)} unidades)")
+        
         query_custos = """
         SELECT i.nome as "Insumo", ri.quantidade_usada as "Qtd", 
                i.unidade as "Unid", (ri.quantidade_usada * i.custo_real_unitario) as "Custo Parcial"
@@ -919,29 +919,50 @@ elif menu == "📈 Precificação por Markup":
         WHERE ri.receita_id = %s
         """
         df_custos_detalhe = fetch_data(query_custos, (int(rec_data["id"]),))
-        custo_receita_total = df_custos_detalhe["Custo Parcial"].sum() if not df_custos_detalhe.empty else 0
-        custo_receita = custo_receita_total / float(rec_data["rendimento_unidades"])
         
-        st.markdown(f"### 🧁 {produto_sel}")
-        st.write(f"**Custo Base (Porção unitária):** R$ {custo_receita:.2f}")
-        
-        # EXPANSOR 1: OS DETALHES DA RECEITA PARA NÃO PERDER TEMPO
-        with st.expander("👀 Ver Ingredientes desta Receita (Clique para abrir)", expanded=False):
+        # 1. A TABELA MÁGICA COM CAIXINHAS
+        with st.expander("👀 1. Separar Ingredientes de Embalagens (Clique aqui)", expanded=True):
+            st.caption("Marque a caixinha nas embalagens. O sistema vai descontá-las do custo da receita automaticamente!")
             if not df_custos_detalhe.empty:
-                st.dataframe(
+                df_custos_detalhe["É Embalagem?"] = False
+                df_custos_detalhe = df_custos_detalhe[["É Embalagem?", "Insumo", "Qtd", "Unid", "Custo Parcial"]]
+                
+                df_editado = st.data_editor(
                     df_custos_detalhe,
-                    column_config={"Custo Parcial": st.column_config.NumberColumn("Custo (R$)", format="R$ %.2f")},
+                    column_config={
+                        "É Embalagem?": st.column_config.CheckboxColumn("É Embalagem?", default=False),
+                        "Custo Parcial": st.column_config.NumberColumn("Custo Total na Receita", format="R$ %.2f")
+                    },
+                    disabled=["Insumo", "Qtd", "Unid", "Custo Parcial"],
                     hide_index=True, use_container_width=True
                 )
-                st.caption("💡 Se a embalagem (fita, adesivo, caixa) já estiver nesta lista, deixe o campo 'Embalagem por fora' zerado abaixo!")
+                
+                soma_embalagens = df_editado[df_editado["É Embalagem?"] == True]["Custo Parcial"].sum()
+                soma_ingredientes = df_editado[df_editado["É Embalagem?"] == False]["Custo Parcial"].sum()
+                
+                emb_unit = soma_embalagens / rendimento if rendimento > 0 else 0
+                ing_unit = soma_ingredientes / rendimento if rendimento > 0 else 0
             else:
                 st.info("Nenhum ingrediente cadastrado.")
+                emb_unit = 0.0
+                ing_unit = 0.0
 
         st.divider()
-
-        # EXPANSOR 2: A CALCULADORA DA PLANILHA
-        st.subheader("🎯 A sua Meta de Negócio (A Mágica da Planilha)")
         
+        # 2. OS CAMPOS LIVRES PARA VOCÊ DIGITAR
+        st.subheader("📝 2. Custos Unitários Base (Preenchimento Livre)")
+        st.info("Estes campos já vêm com a conta dividida da tabela acima, mas estão destravados! Você tem total liberdade para apagar e digitar o valor que quiser.")
+        
+        c1, c2 = st.columns(2)
+        with c1:
+            custo_base_livre = st.number_input("Custo APENAS dos Ingredientes (R$)", value=float(ing_unit), step=0.10)
+        with c2:
+            custo_embalagem_livre = st.number_input("Custo APENAS da Embalagem (R$)", value=float(emb_unit), step=0.10)
+            
+        st.divider()
+
+        # 3. A CALCULADORA DA PLANILHA
+        st.subheader("🎯 3. A sua Meta de Negócio (A Mágica da Planilha)")
         try:
             total_cf_df = fetch_data("SELECT SUM(valor_mensal) as t FROM custos_fixos")
             total_cf = float(total_cf_df.iloc[0]["t"]) if not total_cf_df.empty and pd.notna(total_cf_df.iloc[0]["t"]) else 0.0
@@ -956,20 +977,15 @@ elif menu == "📈 Precificação por Markup":
         with col_m3:
             st.info(f"**Custos Fixos Atuais:**\n R$ {total_cf:.2f}")
 
-        # Matemática perfeita da Planilha
         perc_cf = (total_cf / fat_estimado * 100) if fat_estimado > 0 else 0
         margem_necessaria = perc_cf + lucro_desejado
-        
-        st.caption(f"📊 *Para faturar R$ {fat_estimado:.2f}, os seus Custos Fixos pesam **{perc_cf:.1f}%**. Somando com o seu lucro de **{lucro_desejado:.1f}%**, o sistema blindou **{margem_necessaria:.1f}%** de cada venda.*")
+        st.caption(f"📊 *Para faturar R$ {fat_estimado:.2f}, os seus Custos Fixos pesam **{perc_cf:.1f}%**. Somando com o lucro de **{lucro_desejado:.1f}%**, o sistema blindou **{margem_necessaria:.1f}%** de cada venda.*")
 
         st.divider()
         
-        st.subheader("📦 Custos Extras & Taxas dos Canais")
-        ce1, ce2 = st.columns(2)
-        with ce1:
-            custo_embalagem = st.number_input("Embalagem por fora (R$)", value=0.00, step=0.50)
-        with ce2:
-            frete_ifood = st.number_input("Frete Embutido (Só iFood) R$", value=3.50, step=0.50)
+        # 4. TAXAS DOS CANAIS
+        st.subheader("🛵 4. Frete e Taxas dos Canais de Venda")
+        frete_ifood = st.number_input("Frete Embutido (Só iFood) R$", value=3.50, step=0.50)
         
         imposto_me = 4.0
         c_p, c_m, c_v, c_i = st.columns(4)
@@ -979,39 +995,41 @@ elif menu == "📈 Precificação por Markup":
         t_ifood = c_i.number_input("Taxa iFood (%)", value=23.0)
         
         st.divider()
-        st.subheader("💰 Preços Sugeridos (Matemática Exata)")
         
-        def calc_preco_perfeito(taxa_canal, aplica_frete=False):
-            # Soma tudo o que vai "comer" o dinheiro (Margem + Imposto + Taxa)
+        # 5. PREÇO FINAL E MULTIPLICADOR VISÍVEL
+        st.subheader("💰 5. Preços Sugeridos (Matemática Exata)")
+        
+        def obter_multiplicador(taxa_canal):
             total_descontos_perc = (margem_necessaria + imposto_me + taxa_canal) / 100
-            
-            custo_total_produto = custo_receita + custo_embalagem
-            if aplica_frete:
-                custo_total_produto += frete_ifood
-                
             if total_descontos_perc >= 1:
-                return 0 # Segurança
-                
-            # Fórmula mestre do Preço
-            return custo_total_produto / (1 - total_descontos_perc)
+                return 0
+            # Fórmula do Multiplicador de Markup
+            return 1 / (1 - total_descontos_perc)
 
-        p_pix = calc_preco_perfeito(t_pix, False)
-        p_maq = calc_preco_perfeito(t_maq, False)
-        p_vr = calc_preco_perfeito(t_vr, False)
-        p_ifood = calc_preco_perfeito(t_ifood, True)
+        # Calculando os multiplicadores exatos
+        m_pix = obter_multiplicador(t_pix)
+        m_maq = obter_multiplicador(t_maq)
+        m_vr = obter_multiplicador(t_vr)
+        m_ifood = obter_multiplicador(t_ifood)
         
+        # Calculando os preços
+        p_pix = (custo_base_livre + custo_embalagem_livre) * m_pix
+        p_maq = (custo_base_livre + custo_embalagem_livre) * m_maq
+        p_vr = (custo_base_livre + custo_embalagem_livre) * m_vr
+        p_ifood = (custo_base_livre + custo_embalagem_livre + frete_ifood) * m_ifood
+        
+        # Exibindo Preço e Multiplicador juntos!
         col_p1, col_p2, col_p3, col_p4 = st.columns(4)
-        col_p1.metric("Pix / Dinheiro", f"R$ {p_pix:.2f}")
-        col_p2.metric("Maquininha", f"R$ {p_maq:.2f}")
-        col_p3.metric("VR", f"R$ {p_vr:.2f}")
-        col_p4.metric("iFood (c/ frete)", f"R$ {p_ifood:.2f}")
+        col_p1.metric("Pix / Dinheiro", f"R$ {p_pix:.2f}", f"Markup: {m_pix:.2f}x", delta_color="off")
+        col_p2.metric("Maquininha", f"R$ {p_maq:.2f}", f"Markup: {m_maq:.2f}x", delta_color="off")
+        col_p3.metric("VR", f"R$ {p_vr:.2f}", f"Markup: {m_vr:.2f}x", delta_color="off")
+        col_p4.metric("iFood (c/ frete)", f"R$ {p_ifood:.2f}", f"Markup: {m_ifood:.2f}x", delta_color="off")
 
-        # PONTO DE EQUILÍBRIO FOCADO NO DOCE
         st.markdown("---")
         if p_pix > 0 and perc_cf > 0:
             margem_reais_cf = p_pix * (perc_cf / 100)
             if margem_reais_cf > 0:
                 unidades_be = total_cf / margem_reais_cf
-                st.success(f"🎯 **Ponto de Equilíbrio:** Se você vendesse apenas {produto_sel} (no Pix), precisaria vender **{int(unidades_be)} unidades** por mês só para pagar o seu Custo Fixo de R$ {total_cf:.2f}. Tudo o que vender acima disso, já é o seu lucro limpo!")
+                st.success(f"🎯 **Ponto de Equilíbrio:** Se você vendesse apenas {produto_sel} (no Pix), precisaria vender **{int(unidades_be)} unidades** por mês só para pagar o seu Custo Fixo. Acima disso, é lucro limpo!")
 
 conn.close()
