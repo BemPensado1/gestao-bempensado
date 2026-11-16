@@ -807,8 +807,6 @@ elif menu == "📊 Ponto de Equilíbrio & DRE":
     else:
         st.warning("Registre movimentações no Fluxo de Caixa para ver sua DRE e Ponto de Equilíbrio.")
 
-conn.close()
-
 if menu == "🛒 Estoque & Compras":
     st.header("Controle de Estoque e Lista de Compras")
     
@@ -973,3 +971,5 @@ elif menu == "📈 Precificação por Markup":
         col_p2.metric("💳 Maquininha", f"R$ {p_maq:.2f}")
         col_p3.metric("🎟️ VR", f"R$ {p_vr:.2f}")
         col_p4.metric("🛵 iFood (c/ frete)", f"R$ {p_ifood:.2f}")
+
+conn.close()
