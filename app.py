@@ -885,7 +885,36 @@ if menu == "🛒 Estoque & Compras":
             hide_index=True,
             use_container_width=True)
 
-if menu == "📋 Preços Oficiais":
+elif menu == "📋 Preços Oficiais":
+    st.header("📋 Vitrine de Preços e Margens")
+    st.caption("Painel gerencial para comparar o seu custo real, a sugestão matemática do Markup e o preço final que você decidiu cobrar do cliente.")
+
+    query_precos = """
+    SELECT nome as "Doce", 
+           custo_total as "Custo Total (R$)",
+           sugerido_markup as "Sugerido Markup (R$)",
+           preco_particular as "Oficial Particular (R$)", 
+           preco_ifood as "Oficial iFood (R$)" 
+    FROM receitas 
+    WHERE preco_particular > 0 OR preco_ifood > 0
+    ORDER BY nome ASC
+    """
+    df_precos = fetch_data(query_precos)
+
+    if df_precos.empty:
+        st.info("Nenhum preço oficial foi salvo ainda. Calcule um doce na aba de Markup e clique em Salvar!")
+    else:
+        st.dataframe(
+            df_precos,
+            column_config={
+                "Custo Total (R$)": st.column_config.NumberColumn("📦 Custo (Insumo+Emb)", format="R$ %.2f"),
+                "Sugerido Markup (R$)": st.column_config.NumberColumn("🎯 Sugerido (Matemática)", format="R$ %.2f"),
+                "Oficial Particular (R$)": st.column_config.NumberColumn("🛍️ Oficial Particular", format="R$ %.2f"),
+                "Oficial iFood (R$)": st.column_config.NumberColumn("🛵 Oficial iFood", format="R$ %.2f")
+            },
+            hide_index=True,
+            use_container_width=True
+        )if menu == "📋 Preços Oficiais":
     st.header("📋 Histórico de Preços Oficiais Praticados")
     st.caption("Consulte aqui todos os preços oficiais gravados para os seus doces e os custos base da época.")
 
