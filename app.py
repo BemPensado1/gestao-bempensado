@@ -67,7 +67,7 @@ menu = st.sidebar.radio("Navegação", [
     "📦 Insumos", 
     "🏢 Custos Fixos", 
     "📋 Fichas Técnicas", 
-    "💲 Precificação por CMV", 
+    "💲 ", 
     "📈 ", 
     "📋 Preços Oficiais",
     "🛒 Estoque & Compras",
@@ -677,7 +677,7 @@ elif menu == "💲 Precificação por CMV":
         hr_mes = fetch_data("SELECT horas_trabalhadas_mes FROM config_negocio").iloc[0]["horas_trabalhadas_mes"]
         custo_min = (float(total_cf) / float(hr_mes)) / 60 if hr_mes > 0 else 0
         
-        # Puxa o tempo real salvo na Ficha Técnica (com proteção caso esteja vazio)
+        # Puxa o tempo real e anotações salvos no banco
         tempo_salvo = 60
         if "tempo_preparo_minutos" in rec_data.index and pd.notna(rec_data["tempo_preparo_minutos"]):
             tempo_salvo = int(rec_data["tempo_preparo_minutos"])
@@ -690,19 +690,12 @@ elif menu == "💲 Precificação por CMV":
             "⏳ Tempo de preparo da receita inteira (em minutos)", 
             min_value=1, 
             value=tempo_salvo,
-            key=f"tempo_cmv_{rec_data['id']}"
+            key=f"tempo_cmv_unico_{rec_data['id']}"
         )
-        anotacoes = st.text_area("📝 Anotações e Lembretes (Opcional)", value=anotacao_salva, key=f"nota_cmv_{rec_data['id']}")
-        
-        custo_op_unit = (custo_min * tempo_preparo) / float(rec_data["rendimento_unidades"])
-        custo_total = float(cmv_unit) + custo_op_unit
-            
-        # A MÁGICA ESTÁ AQUI: Adicionamos o 'key' para a caixinha mudar junto com o doce selecionado
-        tempo_preparo = st.number_input(
-            "⏳ Tempo de preparo da receita inteira (em minutos)", 
-            min_value=1, 
-            value=tempo_salvo,
-            key=f"tempo_cmv_{rec_data['id']}"
+        anotacoes = st.text_area(
+            "📝 Anotações e Lembretes (Opcional)", 
+            value=anotacao_salva, 
+            key=f"nota_cmv_unica_{rec_data['id']}"
         )
         
         custo_op_unit = (custo_min * tempo_preparo) / float(rec_data["rendimento_unidades"])
