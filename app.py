@@ -676,7 +676,15 @@ elif menu == "💲 Precificação por CMV":
         total_cf = float(fetch_data("SELECT SUM(valor_mensal) as t FROM custos_fixos").iloc[0]["t"] or 0)
         hr_mes = fetch_data("SELECT horas_trabalhadas_mes FROM config_negocio").iloc[0]["horas_trabalhadas_mes"]
         custo_min = (float(total_cf) / float(hr_mes)) / 60 if hr_mes > 0 else 0
-        tempo_preparo = st.number_input("⏳ Tempo de preparo da receita inteira (em minutos)", min_value=1, value=60)
+        
+        # Puxa o tempo real salvo na Ficha Técnica (com proteção caso esteja vazio)
+        tempo_salvo = 60
+        if "tempo_preparo" in rec_data.index and pd.notna(rec_data["tempo_preparo"]):
+            tempo_salvo = int(rec_data["tempo_preparo"])
+        elif "tempo_preparo_minutos" in rec_data.index and pd.notna(rec_data["tempo_preparo_minutos"]):
+            tempo_salvo = int(rec_data["tempo_preparo_minutos"])
+            
+        tempo_preparo = st.number_input("⏳ Tempo de preparo da receita inteira (em minutos)", min_value=1, value=tempo_salvo)
         custo_op_unit = (custo_min * tempo_preparo) / float(rec_data["rendimento_unidades"])
         custo_total = float(cmv_unit) + custo_op_unit
         
@@ -697,7 +705,7 @@ elif menu == "💲 Precificação por CMV":
         frete_ifood = c_f.number_input("Frete Embutido (Só iFood) R$", value=3.50, step=0.50)
         
         c1, c2, c3, c4, c5 = st.columns(5)
-        taxa_pix = c1.number_input("Taxa Pix (%)", value=0.0, step=0.5)
+        taxa_pix = c1.number_input("Taxa Pix (%)", value=0.50, step=0.5)
         taxa_cartao = c2.number_input("Taxa Maquininha (%)", value=5.0, step=0.5)
         taxa_vr = c3.number_input("Taxa VR/Alelo (%)", value=6.0, step=0.5)
         taxa_ifood = c4.number_input("Taxa iFood (%)", value=30.0, step=0.5)
@@ -1039,7 +1047,7 @@ elif menu == "📈 Precificação por Markup":
         
         imposto_me = 4.0
         c_p, c_m, c_v, c_i = st.columns(4)
-        t_pix = c_p.number_input("Taxa Pix (%)", value=0.0)
+        t_pix = c_p.number_input("Taxa Pix (%)", value=0.50)
         t_maq = c_m.number_input("Taxa Maq (%)", value=5.0)
         t_vr = c_v.number_input("Taxa VR (%)", value=6.0)
         t_ifood = c_i.number_input("Taxa iFood (%)", value=30.0)
