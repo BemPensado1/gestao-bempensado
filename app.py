@@ -693,14 +693,14 @@ elif menu == "💲 Precificação por CMV":
         st.write("Altere os valores livremente abaixo. Os preços sugeridos serão blindados na hora.")
         
         c_m, c_f = st.columns(2)
-        margem = c_m.slider("Margem de Lucro Desejada (%)", min_value=0.0, max_value=100.0, value=20.0, step=1.0)
+        margem = c_m.slider("Margem de Lucro Desejada (%)", min_value=0.0, max_value=100.0, value=10.0, step=1.0)
         frete_ifood = c_f.number_input("Frete Embutido (Só iFood) R$", value=3.50, step=0.50)
         
         c1, c2, c3, c4, c5 = st.columns(5)
         taxa_pix = c1.number_input("Taxa Pix (%)", value=0.0, step=0.5)
-        taxa_cartao = c2.number_input("Taxa Maquininha (%)", value=3.5, step=0.5)
-        taxa_vr = c3.number_input("Taxa VR/Alelo (%)", value=6.5, step=0.5)
-        taxa_ifood = c4.number_input("Taxa iFood (%)", value=27.0, step=0.5)
+        taxa_cartao = c2.number_input("Taxa Maquininha (%)", value=5.0, step=0.5)
+        taxa_vr = c3.number_input("Taxa VR/Alelo (%)", value=6.0, step=0.5)
+        taxa_ifood = c4.number_input("Taxa iFood (%)", value=30.0, step=0.5)
         imposto_me = c5.number_input("Imposto ME (%)", value=4.0, step=0.5)
 
         st.markdown("---")
@@ -1021,9 +1021,9 @@ elif menu == "📈 Precificação por Markup":
 
         col_m1, col_m2, col_m3 = st.columns(3)
         with col_m1:
-            fat_estimado = st.number_input("Faturamento Mensal Estimado (R$)", value=5000.0, step=500.0)
+            fat_estimado = st.number_input("Faturamento Mensal Estimado (R$)", value=21000.0, step=500.0)
         with col_m2:
-            lucro_desejado = st.number_input("Lucro Líquido Desejado (%)", value=15.0, step=1.0)
+            lucro_desejado = st.number_input("Lucro Líquido Desejado (%)", value=10.0, step=1.0)
         with col_m3:
             st.info(f"**Custos Fixos Atuais:**\n R$ {total_cf:.2f}")
 
@@ -1040,11 +1040,9 @@ elif menu == "📈 Precificação por Markup":
         imposto_me = 4.0
         c_p, c_m, c_v, c_i = st.columns(4)
         t_pix = c_p.number_input("Taxa Pix (%)", value=0.0)
-        t_maq = c_m.number_input("Taxa Maq (%)", value=1.99)
-        t_vr = c_v.number_input("Taxa VR (%)", value=3.0)
-        t_ifood = c_i.number_input("Taxa iFood (%)", value=23.0)
-        
-        st.divider()
+        t_maq = c_m.number_input("Taxa Maq (%)", value=5.0)
+        t_vr = c_v.number_input("Taxa VR (%)", value=6.0)
+        t_ifood = c_i.number_input("Taxa iFood (%)", value=30.0)
         
         # 5. PREÇO FINAL, MULTIPLICADOR E LUCRO
         st.subheader("💰 5. Preços Sugeridos e Lucro em Reais")
