@@ -684,7 +684,14 @@ elif menu == "💲 Precificação por CMV":
         elif "tempo_preparo_minutos" in rec_data.index and pd.notna(rec_data["tempo_preparo_minutos"]):
             tempo_salvo = int(rec_data["tempo_preparo_minutos"])
             
-        tempo_preparo = st.number_input("⏳ Tempo de preparo da receita inteira (em minutos)", min_value=1, value=tempo_salvo)
+        # A MÁGICA ESTÁ AQUI: Adicionamos o 'key' para a caixinha mudar junto com o doce selecionado
+        tempo_preparo = st.number_input(
+            "⏳ Tempo de preparo da receita inteira (em minutos)", 
+            min_value=1, 
+            value=tempo_salvo,
+            key=f"tempo_cmv_{rec_data['id']}"
+        )
+        
         custo_op_unit = (custo_min * tempo_preparo) / float(rec_data["rendimento_unidades"])
         custo_total = float(cmv_unit) + custo_op_unit
         
