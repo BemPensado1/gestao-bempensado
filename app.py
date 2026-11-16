@@ -1050,4 +1050,26 @@ elif menu == "📈 Precificação por Markup":
                 unidades_be = total_cf / margem_reais_cf
                 st.info(f"🎯 **Ponto de Equilíbrio:** Se vender apenas {produto_sel}, precisará vender **{int(unidades_be)} unidades** por mês para pagar o Custo Fixo do ateliê. Acima disso, é lucro limpo!")
 
+        st.divider()
+        
+        # 6. DEFINIR E SALVAR PREÇOS OFICIAIS
+        st.subheader("💾 6. Salvar Preços de Venda")
+        st.write("Defina o valor final arredondado que você vai cobrar do cliente. O sistema já sugere o valor do VR para o Particular.")
+        
+        col_s1, col_s2 = st.columns(2)
+        with col_s1:
+            preco_def_part = st.number_input("Preço Final - Particular (WhatsApp/Retirada)", value=float(p_vr), step=0.50, format="%.2f")
+        with col_s2:
+            preco_def_ifood = st.number_input("Preço Final - iFood", value=float(p_ifood), step=0.50, format="%.2f")
+            
+        if st.button("💾 Salvar Preços Oficiais", type="primary"):
+            try:
+                execute_query(
+                    "UPDATE receitas SET preco_particular = %s, preco_ifood = %s WHERE id = %s",
+                    (preco_def_part, preco_def_ifood, int(rec_data["id"]))
+                )
+                st.success(f"✅ Sucesso! Os preços do {produto_sel} foram salvos no banco de dados.")
+                st.info("💡 Vá até a aba 'Preços Oficiais' no menu lateral para visualizar e enviar a sua tabela de preços para os clientes!")
+            except Exception as e:
+                st.error(f"Erro ao salvar: {e}")
 conn.close()
