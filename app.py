@@ -914,16 +914,25 @@ elif menu == "📋 Preços Oficiais":
             },
             hide_index=True,
             use_container_width=True
-        )if menu == "📋 Preços Oficiais":
-    st.header("📋 Histórico de Preços Oficiais Praticados")
-    st.caption("Consulte aqui todos os preços oficiais gravados para os seus doces e os custos base da época.")
+        )
 
-    df_precos = fetch_data("SELECT * FROM precos_praticados ORDER BY data_atualizacao DESC")
-
-    if df_precos.empty:
-        st.info("Ainda não há preços oficiais gravados. Vá à aba 'Precificação Inteligente' e clique em 'Gravar Preços Oficiais' nos seus doces.")
+elif menu == "🛒 Estoque & Compras":
+    st.header("🛒 Controle de Estoque & Compras")
+    df_compras = fetch_data("SELECT nome, marca, estoque_atual, estoque_minimo, unidade FROM insumos WHERE estoque_atual <= estoque_minimo ORDER BY nome ASC")
+    
+    if df_compras.empty:
+        st.success("Tudo certo! Nenhum insumo abaixo do estoque mínimo.")
     else:
-        st.dataframe(df_precos, use_container_width=True)
+        st.warning(f"Atenção: Você tem {len(df_compras)} itens precisando de reposição!")
+        st.dataframe(
+            df_compras[['nome', 'marca', 'estoque_atual', 'estoque_minimo', 'unidade']],
+            hide_index=True,
+            use_container_width=True
+        )
+
+# --- FECHAMENTO DO BANCO DE DADOS ---
+if 'conn' in locals():
+    conn.close()
 
 elif menu == "📈 Precificação por Markup":
     st.header("📈 Precificação Inteligente (Método Planilha)")
