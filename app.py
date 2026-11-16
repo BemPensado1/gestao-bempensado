@@ -62,7 +62,18 @@ def create_tables():
 create_tables()
 
 # --- MENU ---
-menu = st.sidebar.radio("Navegação", ["Início", "Insumos", "Custos Fixos", "Fichas Técnicas", "Precificação Inteligente", "Precificação por Markup", "Preços Oficiais", "Fluxo de Caixa", "Ponto de Equilíbrio & DRE"])# --- ÁREA DE SEGURANÇA E BACKUP ---
+menu = st.sidebar.radio("Navegação", [
+    "🏠 Início", 
+    "📦 Insumos", 
+    "🏢 Custos Fixos", 
+    "📋 Fichas Técnicas", 
+    "💲 Precificação Inteligente", 
+    "Precificação por Markup", 
+    "Preços Oficiais",
+    "🛒 Estoque & Compras",
+    "💸 Fluxo de Caixa", 
+    "📊 Ponto de Equilíbrio & DRE"
+])
 st.sidebar.markdown("---")
 st.sidebar.subheader("🔒 Segurança")
 
