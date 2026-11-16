@@ -930,10 +930,6 @@ elif menu == "🛒 Estoque & Compras":
             use_container_width=True
         )
 
-# --- FECHAMENTO DO BANCO DE DADOS ---
-if 'conn' in locals():
-    conn.close()
-
 elif menu == "📈 Precificação por Markup":
     st.header("📈 Precificação Inteligente (Método Planilha)")
     st.caption("Calcula o preço perfeito cruzando os custos da receita com a sua meta de vendas e lucro.")
@@ -1117,4 +1113,7 @@ elif menu == "📈 Precificação por Markup":
                 st.info("💡 Vá até a aba 'Preços Oficiais' no menu lateral para visualizar a sua tabela completa!")
             except Exception as e:
                 st.error(f"Erro ao salvar: {e}")
-conn.close()
+                
+# --- FECHAMENTO DO BANCO DE DADOS ---
+if 'conn' in locals():
+    conn.close()
