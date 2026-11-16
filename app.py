@@ -760,6 +760,26 @@ elif menu == "💲 Precificação por CMV":
                 st.success("Preços gravados com sucesso! O sistema agora monitora a margem deste produto.")
             except Exception as e:
                 st.error(f"Erro ao salvar: {e}")
+
+st.divider()
+        st.subheader("💾 Salvar Sugestão CMV")
+        st.write("Guarde o valor gerado por este método para comparar na vitrine oficial.")
+        
+        # Campo para você digitar o valor final que a calculadora CMV de cima sugeriu
+        valor_cmv_salvar = st.number_input("Digite o Preço Sugerido (CMV) para salvar:", min_value=0.0, step=0.50, format="%.2f")
+        
+        if st.button("💾 Enviar para a Vitrine"):
+            try:
+                cur = conn.cursor()
+                cur.execute(
+                    "UPDATE receitas SET sugerido_cmv = %s WHERE id = %s",
+                    (valor_cmv_salvar, int(rec_data["id"]))
+                )
+                conn.commit()
+                cur.close()
+                st.success(f"✅ Sugestão de CMV do {produto_sel} enviada para a Vitrine com sucesso!")
+            except Exception as e:
+                st.error(f"Erro ao salvar: {e}")
                 
 elif menu == "💸 Fluxo de Caixa":
     st.header("Registrar Entradas e Saídas")
