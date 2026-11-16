@@ -1063,26 +1063,24 @@ elif menu == "📈 Precificação por Markup":
         # 5. PREÇO FINAL, MULTIPLICADOR E LUCRO
         st.subheader("💰 5. Preços Sugeridos e Lucro em Reais")
         
-        # CÁLCULO ESPECIALISTA: Markup Divisor (Margem por Dentro)
-        def calc_preco_blindado(taxa_canal, custo_ing, custo_emb, frete=0):
-            # 1. Soma todos os percentuais que vão "comer" o preço final
+        # CÁLCULO ESPECIALISTA: Margem por Dentro para os canais próprios
+        def calc_preco_blindado(taxa_canal, custo_ing, custo_emb):
             total_descontos_perc = (perc_cf + lucro_desejado + imposto_me + taxa_canal) / 100
-            
-            # 2. Descobre qual é a fatia decimal que sobra para pagar os insumos
             fator_sobra = 1 - total_descontos_perc
             
-            # 3. Trava de segurança: Se os descontos passarem de 100%, a operação gera prejuízo automático
             if fator_sobra <= 0:
                 return 0 
                 
-            # 4. A Mágica: Divide o custo pela fatia que sobra (Gera o preço de venda perfeito)
-            return (custo_ing + custo_emb + frete) / fator_sobra
+            return (custo_ing + custo_emb) / fator_sobra
 
-        # Aplicando a fórmula exata para cada canal de venda
         p_pix = calc_preco_blindado(t_pix, custo_base_livre, custo_embalagem_livre)
         p_maq = calc_preco_blindado(t_maq, custo_base_livre, custo_embalagem_livre)
         p_vr = calc_preco_blindado(t_vr, custo_base_livre, custo_embalagem_livre)
-        p_ifood = calc_preco_blindado(t_ifood, custo_base_livre, custo_embalagem_livre, frete_ifood)
+        
+        # LÓGICA DE ANCORAGEM PARA O IFOOD
+        # Pega no preço do VR (que já tem lucro e custo fixo garantidos) e blinda contra o frete e a taxa do iFood
+        taxas_ifood_total = (t_ifood + imposto_me) / 100
+        p_ifood = (p_vr + frete_ifood) / (1 - taxas_ifood_total) if taxas_ifood_total < 1 else 0
         
         # Cálculo do multiplicador real para exibição no painel
         custo_direto = custo_base_livre + custo_embalagem_livre
@@ -1101,7 +1099,8 @@ elif menu == "📈 Precificação por Markup":
             st.success(f"Lucro Limpo: R$ {p_vr * (lucro_desejado/100):.2f}")
         with col_p4:
             st.metric("🛵 iFood (c/ frete)", f"R$ {p_ifood:.2f}", f"Markup: {get_m(p_ifood):.2f}x", delta_color="off")
-            st.success(f"Lucro Limpo: R$ {p_ifood * (lucro_desejado/100):.2f}")
+            # O lucro no iFood é o mesmo do VR, pois o preço base veio de lá
+            st.success(f"Lucro Limpo: R$ {p_vr * (lucro_desejado/100):.2f}")
 
         st.markdown("---")
         if p_pix > 0 and perc_cf > 0:
