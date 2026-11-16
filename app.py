@@ -1064,12 +1064,17 @@ elif menu == "📈 Precificação por Markup":
             
         if st.button("💾 Salvar Preços Oficiais", type="primary"):
             try:
-                execute_query(
+                # Abrimos a porta do banco, salvamos as alterações e fechamos!
+                cur = conn.cursor()
+                cur.execute(
                     "UPDATE receitas SET preco_particular = %s, preco_ifood = %s WHERE id = %s",
                     (preco_def_part, preco_def_ifood, int(rec_data["id"]))
                 )
+                conn.commit()
+                cur.close()
+                
                 st.success(f"✅ Sucesso! Os preços do {produto_sel} foram salvos no banco de dados.")
-                st.info("💡 Vá até a aba 'Preços Oficiais' no menu lateral para visualizar e enviar a sua tabela de preços para os clientes!")
+                st.info("💡 Vá até a aba 'Preços Oficiais' no menu lateral para visualizar a sua tabela de preços!")
             except Exception as e:
                 st.error(f"Erro ao salvar: {e}")
 conn.close()
