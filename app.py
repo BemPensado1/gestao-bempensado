@@ -648,7 +648,7 @@ if menu == "📋 Fichas Técnicas":
     else:
         st.info("Nenhuma ficha técnica guardada ainda.")
         
-elif menu == "💲 Precificação Inteligente":
+    elif menu == "💲 Precificação Inteligente":
     st.header("Simulador de Preço por Canal de Venda")
     receitas_df = fetch_data("SELECT * FROM receitas")
     
