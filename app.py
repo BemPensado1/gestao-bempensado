@@ -779,7 +779,8 @@ elif menu == "💲 Precificação por CMV":
             )
             conn.commit()
             cur.close()
-            st.success(f"✅ Sugestão de CMV do {produto_sel} enviada para a Vitrine com sucesso!")
+            # Correção feita aqui na linha abaixo: trocamos produto_sel por rec_sel
+            st.success(f"✅ Sugestão de CMV do {rec_sel} enviada para a Vitrine com sucesso!")
         except Exception as e:
             st.error(f"Erro ao salvar: {e}")
                 
