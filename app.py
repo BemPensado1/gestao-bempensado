@@ -887,28 +887,30 @@ if menu == "🛒 Estoque & Compras":
 
 elif menu == "📋 Preços Oficiais":
     st.header("📋 Vitrine de Preços e Margens")
-    st.caption("Painel gerencial para comparar o seu custo real, a sugestão matemática do Markup e o preço final que você decidiu cobrar do cliente.")
+    st.caption("Painel gerencial para comparar o seu custo real, as sugestões matemáticas (Markup e CMV) e o preço final oficial.")
 
     query_precos = """
     SELECT nome as "Doce", 
            custo_total as "Custo Total (R$)",
            sugerido_markup as "Sugerido Markup (R$)",
+           sugerido_cmv as "Sugerido CMV (R$)",
            preco_particular as "Oficial Particular (R$)", 
            preco_ifood as "Oficial iFood (R$)" 
     FROM receitas 
-    WHERE preco_particular > 0 OR preco_ifood > 0
+    WHERE preco_particular > 0 OR preco_ifood > 0 OR sugerido_cmv > 0 OR sugerido_markup > 0
     ORDER BY nome ASC
     """
     df_precos = fetch_data(query_precos)
 
     if df_precos.empty:
-        st.info("Nenhum preço oficial foi salvo ainda. Calcule um doce na aba de Markup e clique em Salvar!")
+        st.info("Nenhum preço oficial foi salvo ainda. Calcule um doce e clique em Salvar!")
     else:
         st.dataframe(
             df_precos,
             column_config={
-                "Custo Total (R$)": st.column_config.NumberColumn("📦 Custo (Insumo+Emb)", format="R$ %.2f"),
-                "Sugerido Markup (R$)": st.column_config.NumberColumn("🎯 Sugerido (Matemática)", format="R$ %.2f"),
+                "Custo Total (R$)": st.column_config.NumberColumn("📦 Custo", format="R$ %.2f"),
+                "Sugerido Markup (R$)": st.column_config.NumberColumn("🎯 Sug. Markup", format="R$ %.2f"),
+                "Sugerido CMV (R$)": st.column_config.NumberColumn("📊 Sug. CMV", format="R$ %.2f"),
                 "Oficial Particular (R$)": st.column_config.NumberColumn("🛍️ Oficial Particular", format="R$ %.2f"),
                 "Oficial iFood (R$)": st.column_config.NumberColumn("🛵 Oficial iFood", format="R$ %.2f")
             },
