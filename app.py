@@ -68,7 +68,7 @@ menu = st.sidebar.radio("Navegação", [
     "🏢 Custos Fixos", 
     "📋 Fichas Técnicas", 
     "💲 Precificação por CMV", 
-    "📈 Precificação por Markup", 
+    "📈 ", 
     "📋 Preços Oficiais",
     "🛒 Estoque & Compras",
     "💸 Fluxo de Caixa", 
@@ -679,10 +679,23 @@ elif menu == "💲 Precificação por CMV":
         
         # Puxa o tempo real salvo na Ficha Técnica (com proteção caso esteja vazio)
         tempo_salvo = 60
-        if "tempo_preparo" in rec_data.index and pd.notna(rec_data["tempo_preparo"]):
-            tempo_salvo = int(rec_data["tempo_preparo"])
-        elif "tempo_preparo_minutos" in rec_data.index and pd.notna(rec_data["tempo_preparo_minutos"]):
+        if "tempo_preparo_minutos" in rec_data.index and pd.notna(rec_data["tempo_preparo_minutos"]):
             tempo_salvo = int(rec_data["tempo_preparo_minutos"])
+        elif "tempo_preparo" in rec_data.index and pd.notna(rec_data["tempo_preparo"]):
+            tempo_salvo = int(rec_data["tempo_preparo"])
+            
+        anotacao_salva = rec_data["anotacoes"] if "anotacoes" in rec_data.index and pd.notna(rec_data["anotacoes"]) else ""
+            
+        tempo_preparo = st.number_input(
+            "⏳ Tempo de preparo da receita inteira (em minutos)", 
+            min_value=1, 
+            value=tempo_salvo,
+            key=f"tempo_cmv_{rec_data['id']}"
+        )
+        anotacoes = st.text_area("📝 Anotações e Lembretes (Opcional)", value=anotacao_salva, key=f"nota_cmv_{rec_data['id']}")
+        
+        custo_op_unit = (custo_min * tempo_preparo) / float(rec_data["rendimento_unidades"])
+        custo_total = float(cmv_unit) + custo_op_unit
             
         # A MÁGICA ESTÁ AQUI: Adicionamos o 'key' para a caixinha mudar junto com o doce selecionado
         tempo_preparo = st.number_input(
@@ -780,14 +793,14 @@ elif menu == "💲 Precificação por CMV":
     if st.button("💾 Enviar para a Vitrine"):
         try:
             cur = conn.cursor()
+            # Salva o preço, atualiza o tempo correto da receita e guarda as anotações
             cur.execute(
-                "UPDATE receitas SET sugerido_cmv = %s WHERE id = %s",
-                (valor_cmv_salvar, int(rec_data["id"]))
+                "UPDATE receitas SET sugerido_cmv = %s, tempo_preparo_minutos = %s, anotacoes = %s WHERE id = %s",
+                (valor_cmv_salvar, tempo_preparo, anotacoes, int(rec_data["id"]))
             )
             conn.commit()
             cur.close()
-            # Correção feita aqui na linha abaixo: trocamos produto_sel por rec_sel
-            st.success(f"✅ Sugestão de CMV do {rec_sel} enviada para a Vitrine com sucesso!")
+            st.success(f"✅ Sugestão de CMV, Tempo e Anotações do {rec_sel} salvos com sucesso!")
         except Exception as e:
             st.error(f"Erro ao salvar: {e}")
                 
@@ -966,7 +979,7 @@ elif menu == "📈 Precificação por Markup":
     st.header("📈 Precificação Inteligente (Método Planilha)")
     st.caption("Calcula o preço perfeito cruzando os custos da receita com a sua meta de vendas e lucro.")
 
-    df_receitas = fetch_data("SELECT id, nome, rendimento_unidades FROM receitas ORDER BY nome ASC")
+    df_receitas = fetch_data("SELECT id, nome, rendimento_unidades, anotacoes FROM receitas ORDER BY nome ASC")
     
     if df_receitas.empty:
         st.warning("Nenhuma ficha técnica encontrada. Vá à aba 'Fichas Técnicas' para criar uma.")
@@ -975,7 +988,10 @@ elif menu == "📈 Precificação por Markup":
         rec_data = df_receitas[df_receitas['nome'] == produto_sel].iloc[0]
         rendimento = float(rec_data["rendimento_unidades"])
         
+        anotacao_salva = rec_data["anotacoes"] if pd.notna(rec_data["anotacoes"]) else ""
+        
         st.markdown(f"### 🧁 {produto_sel} (Rende {int(rendimento)} unidades)")
+        anotacoes = st.text_area("📝 Anotações e Lembretes (Opcional)", value=anotacao_salva, key=f"nota_mkp_{rec_data['id']}")
         
         query_custos = """
         SELECT i.nome as "Insumo", ri.quantidade_usada as "Qtd", 
@@ -1124,18 +1140,17 @@ elif menu == "📈 Precificação por Markup":
         if st.button("💾 Salvar Preços Oficiais", type="primary"):
             try:
                 cur = conn.cursor()
-                # Soma ingredientes + embalagem para salvar o custo real
                 custo_final_produto = custo_base_livre + custo_embalagem_livre
                 
                 cur.execute(
-                    "UPDATE receitas SET preco_particular = %s, preco_ifood = %s, custo_total = %s, sugerido_markup = %s WHERE id = %s",
-                    (preco_def_part, preco_def_ifood, custo_final_produto, p_vr, int(rec_data["id"]))
+                    "UPDATE receitas SET preco_particular = %s, preco_ifood = %s, custo_total = %s, sugerido_markup = %s, anotacoes = %s WHERE id = %s",
+                    (preco_def_part, preco_def_ifood, custo_final_produto, p_vr, anotacoes, int(rec_data["id"]))
                 )
                 conn.commit()
                 cur.close()
                 
                 st.success(f"✅ Sucesso! Os preços do {produto_sel} foram salvos no banco de dados.")
-                st.info("💡 Vá até a aba 'Preços Oficiais' no menu lateral para visualizar a sua tabela completa!")
+                st.info("💡 Vá até a aba 'Preços Oficiais' para visualizar a sua tabela completa!")
             except Exception as e:
                 st.error(f"Erro ao salvar: {e}")
                 
