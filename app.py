@@ -1063,32 +1063,28 @@ elif menu == "📈 Precificação por Markup":
         # 5. PREÇO FINAL, MULTIPLICADOR E LUCRO
         st.subheader("💰 5. Preços Sugeridos e Lucro em Reais")
         
-        # Multiplicador Base do Negócio
-        margem_decimal = margem_necessaria / 100
-        markup_base = 1 / (1 - margem_decimal) if margem_decimal < 1 else 1.0
-        
-        # Forma o preço base da loja (Ingredientes x Markup) + Embalagem
-        preco_base_loja = (custo_base_livre * markup_base) + custo_embalagem_livre
-        
-        # Blinda o preço base para os canais próprios (Pix, Maquininha, VR)
-        def calc_preco_final(taxa_canal, preco_base):
-            taxas_venda = (imposto_me + taxa_canal) / 100
-            if taxas_venda >= 1:
-                return 0
-            return preco_base / (1 - taxas_venda)
+        # CÁLCULO ESPECIALISTA: Markup Divisor (Margem por Dentro)
+        def calc_preco_blindado(taxa_canal, custo_ing, custo_emb, frete=0):
+            # 1. Soma todos os percentuais que vão "comer" o preço final
+            total_descontos_perc = (perc_cf + lucro_desejado + imposto_me + taxa_canal) / 100
+            
+            # 2. Descobre qual é a fatia decimal que sobra para pagar os insumos
+            fator_sobra = 1 - total_descontos_perc
+            
+            # 3. Trava de segurança: Se os descontos passarem de 100%, a operação gera prejuízo automático
+            if fator_sobra <= 0:
+                return 0 
+                
+            # 4. A Mágica: Divide o custo pela fatia que sobra (Gera o preço de venda perfeito)
+            return (custo_ing + custo_emb + frete) / fator_sobra
 
-        p_pix = calc_preco_final(t_pix, preco_base_loja)
-        p_maq = calc_preco_final(t_maq, preco_base_loja)
-        p_vr = calc_preco_final(t_vr, preco_base_loja)
+        # Aplicando a fórmula exata para cada canal de venda
+        p_pix = calc_preco_blindado(t_pix, custo_base_livre, custo_embalagem_livre)
+        p_maq = calc_preco_blindado(t_maq, custo_base_livre, custo_embalagem_livre)
+        p_vr = calc_preco_blindado(t_vr, custo_base_livre, custo_embalagem_livre)
+        p_ifood = calc_preco_blindado(t_ifood, custo_base_livre, custo_embalagem_livre, frete_ifood)
         
-        # LÓGICA DE MESTRE PARA O IFOOD (Ancorado no VR)
-        taxas_ifood_total = (imposto_me + t_ifood) / 100
-        p_ifood = (p_vr + frete_ifood) / (1 - taxas_ifood_total) if taxas_ifood_total < 1 else 0
-        
-        # O SEU LUCRO LÍQUIDO EXATO EM REAIS (O QUE VAI PARA O BOLSO)
-        lucro_em_reais = (custo_base_livre * markup_base) * (lucro_desejado / 100)
-        
-        # Multiplicador real da operação para exibir
+        # Cálculo do multiplicador real para exibição no painel
         custo_direto = custo_base_livre + custo_embalagem_livre
         def get_m(preco):
             return preco / custo_direto if custo_direto > 0 else 0
@@ -1096,23 +1092,23 @@ elif menu == "📈 Precificação por Markup":
         col_p1, col_p2, col_p3, col_p4 = st.columns(4)
         with col_p1:
             st.metric("💰 Pix / Dinheiro", f"R$ {p_pix:.2f}", f"Markup: {get_m(p_pix):.2f}x", delta_color="off")
-            st.success(f"Lucro limpo: **R$ {lucro_em_reais:.2f}**")
+            st.success(f"Lucro Limpo: R$ {p_pix * (lucro_desejado/100):.2f}")
         with col_p2:
             st.metric("💳 Maquininha", f"R$ {p_maq:.2f}", f"Markup: {get_m(p_maq):.2f}x", delta_color="off")
-            st.success(f"Lucro limpo: **R$ {lucro_em_reais:.2f}**")
+            st.success(f"Lucro Limpo: R$ {p_maq * (lucro_desejado/100):.2f}")
         with col_p3:
             st.metric("🎟️ VR", f"R$ {p_vr:.2f}", f"Markup: {get_m(p_vr):.2f}x", delta_color="off")
-            st.success(f"Lucro limpo: **R$ {lucro_em_reais:.2f}**")
+            st.success(f"Lucro Limpo: R$ {p_vr * (lucro_desejado/100):.2f}")
         with col_p4:
             st.metric("🛵 iFood (c/ frete)", f"R$ {p_ifood:.2f}", f"Markup: {get_m(p_ifood):.2f}x", delta_color="off")
-            st.success(f"Lucro limpo: **R$ {lucro_em_reais:.2f}**")
+            st.success(f"Lucro Limpo: R$ {p_ifood * (lucro_desejado/100):.2f}")
 
         st.markdown("---")
         if p_pix > 0 and perc_cf > 0:
-            margem_reais_cf = (custo_base_livre * markup_base) * (perc_cf / 100)
+            margem_reais_cf = p_pix * (perc_cf / 100)
             if margem_reais_cf > 0:
                 unidades_be = total_cf / margem_reais_cf
-                st.info(f"🎯 **Ponto de Equilíbrio:** Se vender apenas {produto_sel}, precisará vender **{int(unidades_be)} unidades** por mês para pagar o Custo Fixo do ateliê. Acima disso, é lucro limpo!")
+                st.info(f"🎯 **Ponto de Equilíbrio:** Se vender apenas {produto_sel}, precisará vender **{int(unidades_be)} unidades** por mês no Pix para pagar o Custo Fixo do ateliê. Acima disso, é lucro limpo!")
 
         st.divider()
         
