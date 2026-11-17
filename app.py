@@ -1084,7 +1084,7 @@ elif menu == "📈 Precificação por Markup":
         c_p, c_m, c_v, c_i = st.columns(4)
         t_pix = c_p.number_input("Taxa Pix (%)", value=0.50)
         t_maq = c_m.number_input("Taxa Maq (%)", value=5.0)
-        t_vr = c_v.number_input("Taxa VR (%)", value=6.0)
+        t_vr = c_v.number_input("Taxa VR (%)", value=4.0)
         t_ifood = c_i.number_input("Taxa iFood (%)", value=30.0)
         
         # 5. PREÇO FINAL, MULTIPLICADOR E LUCRO
