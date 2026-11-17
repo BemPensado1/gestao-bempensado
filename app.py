@@ -329,7 +329,7 @@ if menu == "🏢 Custos Fixos":
     else:
         st.info("Não há custos disponíveis para edição.")
 
-if menu == "📋 Fichas Técnicas":
+elif menu == "📝 Fichas Técnicas":
     # Criamos colunas para colocar o botão de limpar ao lado do título
     col_tit1, col_tit2 = st.columns([3, 1])
     with col_tit1:
@@ -340,29 +340,38 @@ if menu == "📋 Fichas Técnicas":
             st.session_state["input_nome_receita_unico"] = ""
             st.session_state["input_rendimento_unico"] = 1.0
             st.session_state["input_peso_total_unico"] = 1000.0
+            st.session_state["input_tempo_unico"] = 60
+            st.session_state["input_anotacoes_unico"] = ""
             st.session_state.itens_receita = []
         
         st.button("✨ Nova Receita / Limpar", on_click=limpar_dados, use_container_width=True, key="btn_limpar_receita_topo")
            
-    # 1. Tenta criar as tabelas caso não existam (o código continua igual daqui para baixo...)
-    
-    # 1. Tenta criar as tabelas caso não existam
+    # 1. Tenta criar as tabelas caso não existam de forma SEGURA (sem deletar o que já arrumamos hoje!)
     try:
         cursor = conn.cursor()
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS receitas (
                 id SERIAL PRIMARY KEY,
                 nome TEXT UNIQUE,
-                rendimento_unidades NUMERIC,
-                peso_total_g NUMERIC
+                rendimento_unidades NUMERIC DEFAULT 1.0,
+                peso_total_g NUMERIC DEFAULT 1000.0,
+                tempo_preparo_minutos NUMERIC DEFAULT 60,
+                anotacoes TEXT DEFAULT ''
             );
             CREATE TABLE IF NOT EXISTS receita_itens (
                 id SERIAL PRIMARY KEY,
                 receita_id INTEGER REFERENCES receitas(id) ON DELETE CASCADE,
                 insumo_id INTEGER REFERENCES insumos(id),
-                quantidade_usada NUMERIC
+                quantidade_usada NUMERIC DEFAULT 0
             );
         """)
+        
+        # Adiciona colunas que podem estar faltando, ignorando erros se já existirem
+        cursor.execute("ALTER TABLE receitas ADD COLUMN IF NOT EXISTS rendimento_unidades NUMERIC DEFAULT 1.0;")
+        cursor.execute("ALTER TABLE receitas ADD COLUMN IF NOT EXISTS peso_total_g NUMERIC DEFAULT 1000.0;")
+        cursor.execute("ALTER TABLE receitas ADD COLUMN IF NOT EXISTS tempo_preparo_minutos NUMERIC DEFAULT 60;")
+        cursor.execute("ALTER TABLE receitas ADD COLUMN IF NOT EXISTS anotacoes TEXT DEFAULT '';")
+        cursor.execute("ALTER TABLE receita_itens ADD COLUMN IF NOT EXISTS quantidade_usada NUMERIC DEFAULT 0;")
         conn.commit()
     except Exception:
         try:
@@ -370,50 +379,18 @@ if menu == "📋 Fichas Técnicas":
         except:
             pass
 
-    # 2. Força a adição das colunas novas e limpa as antigas que estão a bloquear o sistema
-    try:
-        cursor = conn.cursor()
-        cursor.execute("ALTER TABLE receitas ADD COLUMN rendimento_unidades NUMERIC DEFAULT 1.0;")
-        conn.commit()
-    except:
-        conn.rollback()
-        
-    try:
-        cursor = conn.cursor()
-        cursor.execute("ALTER TABLE receitas ADD COLUMN peso_total_g NUMERIC DEFAULT 1000.0;")
-        conn.commit()
-    except:
-        conn.rollback()
-
-    # Força a adição da coluna nova na tabela de itens
-    try:
-        cursor = conn.cursor()
-        cursor.execute("ALTER TABLE receita_itens ADD COLUMN quantidade_usada NUMERIC DEFAULT 0;")
-        conn.commit()
-    except:
-        conn.rollback()
-
-    # Remove as colunas antigas para limpar a tabela e parar os erros
-    try:
-        cursor = conn.cursor()
-        cursor.execute("ALTER TABLE receitas DROP COLUMN IF EXISTS rendimento CASCADE;")
-        cursor.execute("ALTER TABLE receitas DROP COLUMN IF EXISTS peso_total CASCADE;")
-        cursor.execute("ALTER TABLE receitas DROP COLUMN IF EXISTS custo_total CASCADE;")
-        cursor.execute("ALTER TABLE receitas DROP COLUMN IF EXISTS tempo_preparo_minutos CASCADE;")
-        # A linha nova que vai limpar a tabela de ingredientes:
-        cursor.execute("ALTER TABLE receita_itens DROP COLUMN IF EXISTS quantidade CASCADE;")
-        conn.commit()
-    except:
-        conn.rollback()
-
-    # Continuação normal...
+    # Continuação normal da sua interface incrível...
     nome_receita = st.text_input("Nome da Receita / Produto (Ex: Brownie Tradicional)", key="input_nome_receita_unico")
     
-    col_r1, col_r2 = st.columns(2)
+    col_r1, col_r2, col_r3 = st.columns(3)
     with col_r1:
-        rendimento = st.number_input("Rendimento (Quantas unidades ou porções rende?)", min_value=1.0, value=1.0, key="input_rendimento_unico")
+        rendimento = st.number_input("Rendimento (Quantas unidades rende?)", min_value=1.0, value=1.0, key="input_rendimento_unico")
     with col_r2:
-        peso_total = st.number_input("Peso Total Final da Receita (em gramas ou ml)", min_value=0.1, value=1000.0, key="input_peso_total_unico")
+        peso_total = st.number_input("Peso Total Final (em g ou ml)", min_value=0.1, value=1000.0, key="input_peso_total_unico")
+    with col_r3:
+        tempo_preparo = st.number_input("Tempo de Preparo (minutos)", min_value=1, value=60, key="input_tempo_unico")
+
+    anotacoes = st.text_area("📝 Anotações e Lembretes da Receita", key="input_anotacoes_unico", placeholder="Ex: Assar a 180 graus, usar a fita marsala na caixa...")
 
     st.markdown("---")
     st.subheader("🛒 Selecionar Insumos para a Receita")
@@ -468,7 +445,6 @@ if menu == "📋 Fichas Técnicas":
 
             df_tabela = pd.DataFrame(lista_tabela)
 
-            # Tabela interativa onde você pode digitar a Qtd Usada
             df_editado = st.data_editor(
                 df_tabela,
                 column_config={
@@ -503,10 +479,8 @@ if menu == "📋 Fichas Técnicas":
                 st.session_state.itens_receita = novos_itens
                 st.rerun()
 
-        # --- ÁREA PARA REMOVER UM INSUMO ESPECÍFICO ---
         if len(st.session_state.itens_receita) > 0:
             st.markdown("---")
-            
             ids_na_memoria = tuple([item["insumo_id"] for item in st.session_state.itens_receita])
             
             if ids_na_memoria:
@@ -523,11 +497,7 @@ if menu == "📋 Fichas Técnicas":
                         qtd = st.session_state.itens_receita[i]["quantidade"]
                         return f"Linha {i+1}: {nome_insumo} (Qtd: {qtd})"
                         
-                    item_escolhido = st.selectbox(
-                        "Qual ingrediente deseja remover?", 
-                        posicoes, 
-                        format_func=formatar_nome_dropdown
-                    )
+                    item_escolhido = st.selectbox("Qual ingrediente deseja remover?", posicoes, format_func=formatar_nome_dropdown)
                     
                 with col_del2:
                     st.write("") 
@@ -535,7 +505,6 @@ if menu == "📋 Fichas Técnicas":
                         st.session_state.itens_receita.pop(item_escolhido)
                         st.rerun()
             st.markdown("---")
-        # ----------------------------------------------
             
             st.metric("💰 Custo Total de Produção da Receita", f"R$ {custo_total_receita:.2f}")
             st.metric("🍰 Custo por Unidade / Porção", f"R$ {custo_total_receita / rendimento:.2f}")
@@ -547,12 +516,15 @@ if menu == "📋 Fichas Técnicas":
                     try:
                         cursor = conn.cursor()
                         cursor.execute("""
-                            INSERT INTO receitas (nome, rendimento_unidades, peso_total_g) 
-                            VALUES (%s, %s, %s)
+                            INSERT INTO receitas (nome, rendimento_unidades, peso_total_g, tempo_preparo_minutos, anotacoes) 
+                            VALUES (%s, %s, %s, %s, %s)
                             ON CONFLICT (nome) DO UPDATE 
-                            SET rendimento_unidades = EXCLUDED.rendimento_unidades, peso_total_g = EXCLUDED.peso_total_g
+                            SET rendimento_unidades = EXCLUDED.rendimento_unidades, 
+                                peso_total_g = EXCLUDED.peso_total_g,
+                                tempo_preparo_minutos = EXCLUDED.tempo_preparo_minutos,
+                                anotacoes = EXCLUDED.anotacoes
                             RETURNING id;
-                        """, (nome_receita, rendimento, peso_total))
+                        """, (nome_receita, rendimento, peso_total, tempo_preparo, anotacoes))
                         rec_id = cursor.fetchone()[0]
 
                         cursor.execute("DELETE FROM receita_itens WHERE receita_id = %s", (rec_id,))
@@ -564,7 +536,7 @@ if menu == "📋 Fichas Técnicas":
                             """, (rec_id, item['insumo_id'], item['quantidade']))
 
                         conn.commit()
-                        st.success(f"Ficha técnica da receita '{nome_receita}' salva com sucesso!")
+                        st.success(f"Ficha técnica '{nome_receita}' salva com sucesso!")
                         st.session_state.itens_receita = []
                         st.rerun()
                     except Exception as err:
@@ -578,31 +550,25 @@ if menu == "📋 Fichas Técnicas":
     st.markdown("---")
     st.subheader("📖 As Minhas Receitas Salvas")
     
-    # 1. Função super leve, sem base de dados, só para preparar a memória
-    def preparar_edicao(nome, rend, peso, itens):
+    def preparar_edicao(nome, rend, peso, tempo, anotacoes, itens):
         st.session_state["input_nome_receita_unico"] = nome
         st.session_state["input_rendimento_unico"] = float(rend)
         st.session_state["input_peso_total_unico"] = float(peso)
+        st.session_state["input_tempo_unico"] = int(tempo) if pd.notna(tempo) else 60
+        st.session_state["input_anotacoes_unico"] = str(anotacoes) if pd.notna(anotacoes) else ""
         st.session_state.itens_receita = itens
 
-    # 2. Mostramos as receitas salvas
     try:
-        df_receitas = pd.read_sql("SELECT id, nome, rendimento_unidades, peso_total_g FROM receitas ORDER BY nome", conn)
+        df_receitas = pd.read_sql("SELECT id, nome, rendimento_unidades, peso_total_g, tempo_preparo_minutos, anotacoes FROM receitas ORDER BY nome", conn)
     except Exception:
         df_receitas = pd.DataFrame()
         
     if not df_receitas.empty:
-        receita_selecionada = st.selectbox(
-            "Pesquisar receita salva:", 
-            df_receitas['nome'].tolist(), 
-            index=None, 
-            placeholder="Escolha uma receita para visualizar..."
-        )
+        receita_selecionada = st.selectbox("Pesquisar receita salva:", df_receitas['nome'].tolist(), index=None, placeholder="Escolha uma receita para visualizar...")
         
         if receita_selecionada:
             dados_rec = df_receitas[df_receitas['nome'] == receita_selecionada].iloc[0]
             
-            # Adicionamos o "ri.insumo_id" aqui para sabermos exatamente qual o ID a editar
             query_itens = """
                 SELECT ri.insumo_id, i.nome as "Insumo", i.marca as "Marca", ri.quantidade_usada as "Qtd Usada", 
                        i.unidade as "Unidade", i.custo_real_unitario,
@@ -618,12 +584,14 @@ if menu == "📋 Fichas Técnicas":
                     custo_total = df_itens_salvos['Custo Parcial'].sum()
                     custo_unidade = custo_total / float(dados_rec['rendimento_unidades'])
                     
-                    st.write(f"**Rendimento:** {dados_rec['rendimento_unidades']} unidades/porções | **Peso Total:** {dados_rec['peso_total_g']}g")
+                    st.write(f"**Rendimento:** {dados_rec['rendimento_unidades']} | **Tempo:** {dados_rec.get('tempo_preparo_minutos', 60)} min | **Peso:** {dados_rec['peso_total_g']}g")
+                    if pd.notna(dados_rec.get('anotacoes')) and dados_rec['anotacoes'] != "":
+                        st.info(f"📝 **Anotações:** {dados_rec['anotacoes']}")
                     
                     st.dataframe(
                         df_itens_salvos,
                         column_config={
-                            "insumo_id": None, # Esconde o ID técnico
+                            "insumo_id": None, 
                             "custo_real_unitario": None, 
                             "Custo Parcial": st.column_config.NumberColumn("Custo Parcial (R$)", format="R$ %.2f"),
                             "Qtd Usada": st.column_config.NumberColumn("Qtd Usada", format="%.2f")
@@ -632,13 +600,8 @@ if menu == "📋 Fichas Técnicas":
                         use_container_width=True
                     )
                     
-                    # Preparamos a "marmita" de ingredientes para enviar para o botão de edição
-                    itens_para_editar = [
-                        {"insumo_id": int(row['insumo_id']), "quantidade": float(row['Qtd Usada'])} 
-                        for _, row in df_itens_salvos.iterrows()
-                    ]
+                    itens_para_editar = [{"insumo_id": int(row['insumo_id']), "quantidade": float(row['Qtd Usada'])} for _, row in df_itens_salvos.iterrows()]
                     
-                    # 3. Botões na base da receita
                     col_tot1, col_tot2, col_tot3, col_tot4 = st.columns([3, 3, 2, 2])
                     with col_tot1:
                         st.info(f"💰 Custo Total: **R$ {custo_total:.2f}**")
@@ -649,7 +612,7 @@ if menu == "📋 Fichas Técnicas":
                             "✏️ Editar", 
                             key=f"edit_rec_{dados_rec['id']}", 
                             on_click=preparar_edicao, 
-                            args=(dados_rec['nome'], dados_rec['rendimento_unidades'], dados_rec['peso_total_g'], itens_para_editar)
+                            args=(dados_rec['nome'], dados_rec['rendimento_unidades'], dados_rec['peso_total_g'], dados_rec.get('tempo_preparo_minutos', 60), dados_rec.get('anotacoes', ''), itens_para_editar)
                         )
                     with col_tot4:
                         if st.button("🗑️ Excluir", key=f"del_rec_{dados_rec['id']}"):
