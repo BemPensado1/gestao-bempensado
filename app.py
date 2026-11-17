@@ -738,7 +738,7 @@ elif menu == "💲 Precificação por CMV":
         c1, c2, c3, c4, c5 = st.columns(5)
         taxa_pix = c1.number_input("Taxa Pix (%)", value=0.50, step=0.5)
         taxa_cartao = c2.number_input("Taxa Maquininha (%)", value=5.0, step=0.5)
-        taxa_vr = c3.number_input("Taxa VR/Alelo (%)", value=6.0, step=0.5)
+        taxa_vr = c3.number_input("Taxa VR/Alelo (%)", value=3.60, step=0.5)
         taxa_ifood = c4.number_input("Taxa iFood (%)", value=30.0, step=0.5)
         imposto_me = c5.number_input("Imposto ME (%)", value=4.0, step=0.5)
 
