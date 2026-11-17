@@ -701,6 +701,21 @@ elif menu == "💲 Precificação por CMV":
             key=f"nota_cmv_unica_{rec_data['id']}"
         )
         
+        # NOVO BOTÃO: Salva rapidamente sem precisar descer a página
+        if st.button("💾 Salvar Tempo e Anotações"):
+            try:
+                cur = conn.cursor()
+                cur.execute(
+                    "UPDATE receitas SET tempo_preparo_minutos = %s, anotacoes = %s WHERE id = %s",
+                    (tempo_preparo, anotacoes, int(rec_data["id"]))
+                )
+                conn.commit()
+                cur.close()
+                st.cache_data.clear() # Força o sistema a esquecer o cache antigo
+                st.success("✅ Tempo e anotações salvos na Ficha Técnica!")
+            except Exception as e:
+                st.error(f"Erro ao salvar: {e}")
+        
         custo_op_unit = (custo_min * tempo_preparo) / float(rec_data["rendimento_unidades"])
         custo_total = float(cmv_unit) + custo_op_unit
         
