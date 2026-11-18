@@ -985,7 +985,6 @@ elif menu == "📈 Precificação por Markup":
         """
         df_custos_detalhe = fetch_data(query_custos, (int(rec_data["id"]),))
         
-        # 1. A TABELA MÁGICA COM CAIXINHAS
         with st.expander("👀 1. Separar Ingredientes de Embalagens (Clique aqui)", expanded=True):
             st.caption("Marque a caixinha nas embalagens. O sistema vai descontá-las do custo da receita automaticamente!")
             if not df_custos_detalhe.empty:
@@ -1014,7 +1013,6 @@ elif menu == "📈 Precificação por Markup":
 
         st.divider()
         
-        # 2. OS CAMPOS LIVRES PARA VOCÊ DIGITAR
         st.subheader("📝 2. Custos Unitários Base (Preenchimento Livre)")
         st.info("Estes campos já vêm com a conta dividida da tabela acima, mas estão destravados! Você tem total liberdade para apagar e digitar o valor que quiser.")
         
@@ -1026,7 +1024,6 @@ elif menu == "📈 Precificação por Markup":
             
         st.divider()
 
-        # 3. A CALCULADORA DA PLANILHA
         st.subheader("🎯 3. A sua Meta de Negócio (A Mágica da Planilha)")
         try:
             total_cf_df = fetch_data("SELECT SUM(valor_mensal) as t FROM custos_fixos")
@@ -1048,7 +1045,6 @@ elif menu == "📈 Precificação por Markup":
 
         st.divider()
         
-        # 4. TAXAS DOS CANAIS
         st.subheader("🛵 4. Frete e Taxas dos Canais de Venda")
         frete_ifood = st.number_input("Frete Embutido (Só iFood) R$", value=3.50, step=0.50)
         
@@ -1059,10 +1055,8 @@ elif menu == "📈 Precificação por Markup":
         t_vr = c_v.number_input("Taxa VR (%)", value=4.0)
         t_ifood = c_i.number_input("Taxa iFood (%)", value=30.0)
         
-        # 5. PREÇO FINAL, MULTIPLICADOR E LUCRO
         st.subheader("💰 5. Preços Sugeridos e Lucro em Reais")
         
-        # CÁLCULO ESPECIALISTA: Margem por Dentro para os canais próprios
         def calc_preco_blindado(taxa_canal, custo_ing, custo_emb):
             total_descontos_perc = (perc_cf + lucro_desejado + imposto_me + taxa_canal) / 100
             fator_sobra = 1 - total_descontos_perc
@@ -1076,12 +1070,9 @@ elif menu == "📈 Precificação por Markup":
         p_maq = calc_preco_blindado(t_maq, custo_base_livre, custo_embalagem_livre)
         p_vr = calc_preco_blindado(t_vr, custo_base_livre, custo_embalagem_livre)
         
-        # LÓGICA DE ANCORAGEM PARA O IFOOD
-        # Pega no preço do VR (que já tem lucro e custo fixo garantidos) e blinda contra o frete e a taxa do iFood
         taxas_ifood_total = (t_ifood + imposto_me) / 100
-        p_ifood = (p_vr + frete_ifood) / (1 - taxas_ifood_total) if taxas_ifood_total < 1 else 0
+        p_ifood = (p_maq + frete_ifood) / (1 - taxas_ifood_total) if taxas_ifood_total < 1 else 0
         
-        # Cálculo do multiplicador real para exibição no painel
         custo_direto = custo_base_livre + custo_embalagem_livre
         def get_m(preco):
             return preco / custo_direto if custo_direto > 0 else 0
@@ -1098,8 +1089,7 @@ elif menu == "📈 Precificação por Markup":
             st.success(f"Lucro Limpo: R$ {p_vr * (lucro_desejado/100):.2f}")
         with col_p4:
             st.metric("🛵 iFood (c/ frete)", f"R$ {p_ifood:.2f}", f"Markup: {get_m(p_ifood):.2f}x", delta_color="off")
-            # O lucro no iFood é o mesmo do VR, pois o preço base veio de lá
-            st.success(f"Lucro Limpo: R$ {p_vr * (lucro_desejado/100):.2f}")
+            st.success(f"Lucro Limpo: R$ {p_maq * (lucro_desejado/100):.2f}")
 
         st.markdown("---")
         if p_pix > 0 and perc_cf > 0:
@@ -1110,13 +1100,12 @@ elif menu == "📈 Precificação por Markup":
 
         st.divider()
         
-        # 6. DEFINIR E SALVAR PREÇOS OFICIAIS
         st.subheader("💾 6. Salvar Preços de Venda")
-        st.write("Defina o valor final arredondado que você vai cobrar do cliente. O sistema já sugere o valor do VR para o Particular.")
+        st.write("Defina o valor final arredondado que você vai cobrar do cliente. O sistema já sugere o valor da Maquininha (5%) para blindar o Particular.")
         
         col_s1, col_s2 = st.columns(2)
         with col_s1:
-            preco_def_part = st.number_input("Preço Final - Particular (WhatsApp/Retirada)", value=float(p_vr), step=0.50, format="%.2f")
+            preco_def_part = st.number_input("Preço Final - Particular (WhatsApp/Retirada)", value=float(p_maq), step=0.50, format="%.2f")
         with col_s2:
             preco_def_ifood = st.number_input("Preço Final - iFood", value=float(p_ifood), step=0.50, format="%.2f")
             
@@ -1127,12 +1116,12 @@ elif menu == "📈 Precificação por Markup":
                 
                 cur.execute(
                     "UPDATE receitas SET preco_particular = %s, preco_ifood = %s, custo_total = %s, sugerido_markup = %s, anotacoes = %s WHERE id = %s",
-                    (preco_def_part, preco_def_ifood, custo_final_produto, p_vr, anotacoes, int(rec_data["id"]))
+                    (preco_def_part, preco_def_ifood, custo_final_produto, p_maq, anotacoes, int(rec_data["id"]))
                 )
                 conn.commit()
                 cur.close()
                 
-                st.success(f"✅ Sucesso! Os preços do {produto_sel} foram salvos no banco de dados.")
+                st.success(f"✅ Sucesso! Os preços do {produto_sel} foram salvos no banco de dados ancorados no Cartão (5%).")
                 st.info("💡 Vá até a aba 'Preços Oficiais' para visualizar a sua tabela completa!")
             except Exception as e:
                 st.error(f"Erro ao salvar: {e}")
