@@ -343,10 +343,13 @@ elif menu == "📝 Fichas Técnicas":
             st.session_state["input_tempo_unico"] = 60
             st.session_state["input_anotacoes_unico"] = ""
             st.session_state.itens_receita = []
+            # LIMPANDO A MEMÓRIA DA TABELA
+            if "editor_itens_receita_unico" in st.session_state:
+                del st.session_state["editor_itens_receita_unico"]
         
         st.button("✨ Nova Receita / Limpar", on_click=limpar_dados, use_container_width=True, key="btn_limpar_receita_topo")
            
-    # 1. Tenta criar as tabelas caso não existam de forma SEGURA (sem deletar o que já arrumamos hoje!)
+    # 1. Tenta criar as tabelas caso não existam de forma SEGURA
     try:
         cursor = conn.cursor()
         cursor.execute("""
@@ -366,7 +369,7 @@ elif menu == "📝 Fichas Técnicas":
             );
         """)
         
-        # Adiciona colunas que podem estar faltando, ignorando erros se já existirem
+        # Adiciona colunas que podem estar faltando
         cursor.execute("ALTER TABLE receitas ADD COLUMN IF NOT EXISTS rendimento_unidades NUMERIC DEFAULT 1.0;")
         cursor.execute("ALTER TABLE receitas ADD COLUMN IF NOT EXISTS peso_total_g NUMERIC DEFAULT 1000.0;")
         cursor.execute("ALTER TABLE receitas ADD COLUMN IF NOT EXISTS tempo_preparo_minutos NUMERIC DEFAULT 60;")
@@ -379,7 +382,6 @@ elif menu == "📝 Fichas Técnicas":
         except:
             pass
 
-    # Continuação normal da sua interface incrível...
     nome_receita = st.text_input("Nome da Receita / Produto (Ex: Brownie Tradicional)", key="input_nome_receita_unico")
     
     col_r1, col_r2, col_r3 = st.columns(3)
@@ -503,6 +505,9 @@ elif menu == "📝 Fichas Técnicas":
                     st.write("") 
                     if st.button("🗑️ Remover Escolhido", use_container_width=True):
                         st.session_state.itens_receita.pop(item_escolhido)
+                        # LIMPANDO A MEMÓRIA DA TABELA
+                        if "editor_itens_receita_unico" in st.session_state:
+                            del st.session_state["editor_itens_receita_unico"]
                         st.rerun()
             st.markdown("---")
             
@@ -538,6 +543,9 @@ elif menu == "📝 Fichas Técnicas":
                         conn.commit()
                         st.success(f"Ficha técnica '{nome_receita}' salva com sucesso!")
                         st.session_state.itens_receita = []
+                        # LIMPANDO A MEMÓRIA DA TABELA
+                        if "editor_itens_receita_unico" in st.session_state:
+                            del st.session_state["editor_itens_receita_unico"]
                         st.rerun()
                     except Exception as err:
                         try:
@@ -552,11 +560,14 @@ elif menu == "📝 Fichas Técnicas":
     
     def preparar_edicao(nome, rend, peso, tempo, anotacoes, itens):
         st.session_state["input_nome_receita_unico"] = nome
-        st.session_state["input_rendimento_unico"] = float(rend)
-        st.session_state["input_peso_total_unico"] = float(peso)
+        st.session_state["input_rendimento_unico"] = float(rend) if pd.notna(rend) else 1.0
+        st.session_state["input_peso_total_unico"] = float(peso) if pd.notna(peso) else 1000.0
         st.session_state["input_tempo_unico"] = int(tempo) if pd.notna(tempo) else 60
         st.session_state["input_anotacoes_unico"] = str(anotacoes) if pd.notna(anotacoes) else ""
         st.session_state.itens_receita = itens
+        # A GRANDE MÁGICA: LIMPANDO A MEMÓRIA DA TABELA AQUI TAMBÉM
+        if "editor_itens_receita_unico" in st.session_state:
+            del st.session_state["editor_itens_receita_unico"]
 
     try:
         df_receitas = pd.read_sql("SELECT id, nome, rendimento_unidades, peso_total_g, tempo_preparo_minutos, anotacoes FROM receitas ORDER BY nome", conn)
