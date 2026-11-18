@@ -132,7 +132,14 @@ def fetch_data(query, params=()):
     # Transforma listas em tuplas para a memória funcionar perfeitamente
     if isinstance(params, list):
         params = tuple(params)
-    return pd.read_sql_query(query, conn, params=params)
+    try:
+        return pd.read_sql_query(query, conn, params=params)
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return pd.read_sql_query(query, conn, params=params)
 
 # --- MÓDULOS ---
 
