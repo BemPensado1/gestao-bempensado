@@ -461,16 +461,26 @@ elif menu == "📝 Fichas Técnicas":
                 key="editor_itens_receita_unico"
             )
 
-            # CÓDIGO OTIMIZADO RÁPIDO (Sem duplo carregamento)
+            # CÓDIGO OTIMIZADO PARA ATUALIZAR TABELA COM SEGURANÇA
+            mudou = False
             custo_total_receita = 0.0
             novos_itens = []
 
             for index, row in df_editado.iterrows():
                 qtd_editada = row['Qtd Usada']
+                qtd_original = df_tabela.iloc[index]['Qtd Usada']
+                
+                if qtd_editada != qtd_original:
+                    mudou = True
+                
                 custo_total_receita += (row['custo_base'] * qtd_editada)
                 novos_itens.append({"insumo_id": row['id_oculto'], "quantidade": qtd_editada})
 
-            st.session_state.itens_receita = novos_itens
+            if mudou:
+                st.session_state.itens_receita = novos_itens
+                if "editor_itens_receita_unico" in st.session_state:
+                    del st.session_state["editor_itens_receita_unico"]
+                st.rerun()
 
         if len(st.session_state.itens_receita) > 0:
             st.markdown("---")
