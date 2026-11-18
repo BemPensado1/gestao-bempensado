@@ -619,7 +619,7 @@ elif menu == "📝 Fichas Técnicas":
                     
                     itens_para_editar = [{"insumo_id": int(row['insumo_id']), "quantidade": float(row['Qtd Usada'])} for _, row in df_itens_salvos.iterrows()]
                     
-                    col_tot1, col_tot2, col_tot3, col_tot4, col_tot5 = st.columns([3, 2, 2, 2, 2])
+                    col_tot1, col_tot2, col_tot3, col_tot4, col_tot5 = st.columns([2.5, 2.5, 2, 1.5, 1.5])
                     with col_tot1:
                         st.info(f"💰 Total: **R$ {custo_total:.2f}**")
                     with col_tot2:
@@ -639,7 +639,9 @@ elif menu == "📝 Fichas Técnicas":
                             args=(dados_rec['nome'], dados_rec['rendimento_unidades'], dados_rec['peso_total_g'], dados_rec.get('tempo_preparo_minutos', 60), dados_rec.get('anotacoes', ''), itens_para_editar)
                         )
                     with col_tot5:
-                        if st.button("🗑️ Excluir", key=f"del_rec_{dados_rec['id']}"):
+                        # O NOVO CADEADO DE SEGURANÇA
+                        liberar_exclusao = st.checkbox("🔓 Destravar", key=f"unlock_{dados_rec['id']}")
+                        if st.button("🗑️ Excluir", key=f"del_rec_{dados_rec['id']}", disabled=not liberar_exclusao, type="primary" if liberar_exclusao else "secondary"):
                             cursor = conn.cursor()
                             cursor.execute("DELETE FROM receitas WHERE id = %s", (int(dados_rec['id']),))
                             conn.commit()
