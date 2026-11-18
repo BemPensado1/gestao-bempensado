@@ -335,7 +335,7 @@ elif menu == "📝 Fichas Técnicas":
     with col_tit1:
         st.header("Montagem das Fichas Técnicas")
     with col_tit2:
-        st.write("") # Pequeno espaço para alinhar com o título
+        st.write("") 
         def limpar_dados():
             st.session_state["input_nome_receita_unico"] = ""
             st.session_state["input_rendimento_unico"] = 1.0
@@ -348,7 +348,6 @@ elif menu == "📝 Fichas Técnicas":
         
         st.button("✨ Nova Receita / Limpar", on_click=limpar_dados, use_container_width=True, key="btn_limpar_receita_topo")
            
-    # 1. Tenta criar as tabelas caso não existam de forma SEGURA
     try:
         cursor = conn.cursor()
         cursor.execute("""
@@ -461,7 +460,6 @@ elif menu == "📝 Fichas Técnicas":
                 key="editor_itens_receita_unico"
             )
 
-            # CÓDIGO OTIMIZADO PARA ATUALIZAR TABELA COM SEGURANÇA
             mudou = False
             custo_total_receita = 0.0
             novos_itens = []
@@ -567,6 +565,16 @@ elif menu == "📝 Fichas Técnicas":
         if "editor_itens_receita_unico" in st.session_state:
             del st.session_state["editor_itens_receita_unico"]
 
+    def preparar_duplicacao(nome, rend, peso, tempo, anotacoes, itens):
+        st.session_state["input_nome_receita_unico"] = f"{nome} (Cópia)"
+        st.session_state["input_rendimento_unico"] = float(rend) if pd.notna(rend) else 1.0
+        st.session_state["input_peso_total_unico"] = float(peso) if pd.notna(peso) else 1000.0
+        st.session_state["input_tempo_unico"] = int(tempo) if pd.notna(tempo) else 60
+        st.session_state["input_anotacoes_unico"] = str(anotacoes) if pd.notna(anotacoes) else ""
+        st.session_state.itens_receita = itens
+        if "editor_itens_receita_unico" in st.session_state:
+            del st.session_state["editor_itens_receita_unico"]
+
     try:
         df_receitas = pd.read_sql("SELECT id, nome, rendimento_unidades, peso_total_g, tempo_preparo_minutos, anotacoes FROM receitas ORDER BY nome", conn)
     except Exception:
@@ -611,19 +619,26 @@ elif menu == "📝 Fichas Técnicas":
                     
                     itens_para_editar = [{"insumo_id": int(row['insumo_id']), "quantidade": float(row['Qtd Usada'])} for _, row in df_itens_salvos.iterrows()]
                     
-                    col_tot1, col_tot2, col_tot3, col_tot4 = st.columns([3, 3, 2, 2])
+                    col_tot1, col_tot2, col_tot3, col_tot4, col_tot5 = st.columns([3, 2, 2, 2, 2])
                     with col_tot1:
-                        st.info(f"💰 Custo Total: **R$ {custo_total:.2f}**")
+                        st.info(f"💰 Total: **R$ {custo_total:.2f}**")
                     with col_tot2:
-                        st.success(f"🍰 Custo/Unidade: **R$ {custo_unidade:.2f}**")
+                        st.success(f"🍰 Unit: **R$ {custo_unidade:.2f}**")
                     with col_tot3:
+                        st.button(
+                            "📄 Duplicar", 
+                            key=f"dup_rec_{dados_rec['id']}", 
+                            on_click=preparar_duplicacao, 
+                            args=(dados_rec['nome'], dados_rec['rendimento_unidades'], dados_rec['peso_total_g'], dados_rec.get('tempo_preparo_minutos', 60), dados_rec.get('anotacoes', ''), itens_para_editar)
+                        )
+                    with col_tot4:
                         st.button(
                             "✏️ Editar", 
                             key=f"edit_rec_{dados_rec['id']}", 
                             on_click=preparar_edicao, 
                             args=(dados_rec['nome'], dados_rec['rendimento_unidades'], dados_rec['peso_total_g'], dados_rec.get('tempo_preparo_minutos', 60), dados_rec.get('anotacoes', ''), itens_para_editar)
                         )
-                    with col_tot4:
+                    with col_tot5:
                         if st.button("🗑️ Excluir", key=f"del_rec_{dados_rec['id']}"):
                             cursor = conn.cursor()
                             cursor.execute("DELETE FROM receitas WHERE id = %s", (int(dados_rec['id']),))
