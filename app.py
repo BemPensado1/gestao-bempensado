@@ -400,11 +400,9 @@ elif menu == "📝 Fichas Técnicas":
     anotacoes = st.text_area("📝 Anotações e Lembretes da Receita", key="input_anotacoes_unico", placeholder="Ex: Assar a 180 graus, usar a fita marsala na caixa...")
 
     virar_insumo = st.checkbox(
-        "🧩 Também salvar/atualizar esta receita como Insumo (Sub-receita / Base para usar em outras fichas)",
+        "🧩 Salvar/atualizar também como Insumo (Sub-receita / Base)",
         key="chk_virar_insumo_unico"
     )
-    if virar_insumo:
-        st.caption(f"💡 Ao salvar, será criado/atualizado o insumo **[BASE] {nome_receita.strip() or 'Receita'}** com base no Peso Total Final de **{peso_total:.1f}** (unidade: `g`).")
 
     st.markdown("---")
     st.subheader("🛒 Selecionar Insumos para a Receita")
@@ -425,91 +423,7 @@ elif menu == "📝 Fichas Técnicas":
             st.session_state.itens_receita = []
 
         col_sel1, col_sel2, col_sel3 = st.columns([3, 2, 1])
-        with col_sel1:
-            insumo_escolhido = st.selectbox(
-                "Insumo", 
-                df_insumos_ft.apply(lambda r: f"{r['id']} - {r['nome']} ({r['marca']})", axis=1).tolist(),
-                key="select_insumo_ft_unico"
-            )
-        with col_sel2:
-            qtd_usada = st.number_input("Qtd usada (g, ml ou un)", min_value=0.01, value=100.0, key="input_qtd_usada_unico")
-        with col_sel3:
-            st.write("")
-            st.write("")
-            if st.button("➕ Adicionar", key="btn_add_insumo_unico"):
-                ins_id = int(insumo_escolhido.split(" - ")[0])
-                st.session_state.itens_receita.append({"insumo_id": ins_id, "quantidade": qtd_usada})
-                st.success("Item adicionado à lista!")
-
-        if st.session_state.itens_receita:
-            st.write("### 📋 Ingredientes Adicionados nesta Receita:")
-            
-            lista_tabela = []
-            for item in st.session_state.itens_receita:
-                dados_ins = df_insumos_ft[df_insumos_ft['id'] == item['insumo_id']].iloc[0]
-                lista_tabela.append({
-                    "id_oculto": item['insumo_id'],
-                    "Insumo": dados_ins['nome'],
-                    "Marca": dados_ins['marca'],
-                    "Qtd Usada": float(item['quantidade']),
-                    "Unidade": dados_ins['unidade'],
-                    "Custo Parcial (R$)": float(dados_ins['custo_real_unitario'] * item['quantidade']),
-                    "custo_base": float(dados_ins['custo_real_unitario'])
-                })
-
-            df_tabela = pd.DataFrame(lista_tabela)
-
-            df_editado = st.data_editor(
-                df_tabela,
-                column_config={
-                    "id_oculto": None, 
-                    "custo_base": None,
-                    "Insumo": st.column_config.Column(disabled=True),
-                    "Marca": st.column_config.Column(disabled=True),
-                    "Unidade": st.column_config.Column(disabled=True),
-                    "Custo Parcial (R$)": st.column_config.NumberColumn(disabled=True, format="R$ %.2f"),
-                    "Qtd Usada": st.column_config.NumberColumn("Qtd Usada (✏️ Edite aqui)", min_value=0.01)
-                },
-                hide_index=True,
-                use_container_width=True,
-                key="editor_itens_receita_unico"
-            )
-
-            mudou = False
-            custo_total_receita = 0.0
-            novos_itens = []
-
-            for index, row in df_editado.iterrows():
-                qtd_editada = row['Qtd Usada']
-                qtd_original = df_tabela.iloc[index]['Qtd Usada']
-                
-                if qtd_editada != qtd_original:
-                    mudou = True
-                
-                custo_total_receita += (row['custo_base'] * qtd_editada)
-                novos_itens.append({"insumo_id": row['id_oculto'], "quantidade": qtd_editada})
-
-            if mudou:
-                st.session_state.itens_receita = novos_itens
-                if "editor_itens_receita_unico" in st.session_state:
-                    del st.session_state["editor_itens_receita_unico"]
-                st.rerun()
-
-        if len(st.session_state.itens_receita) > 0:
-            st.markdown("---")
-            ids_na_memoria = tuple([item["insumo_id"] for item in st.session_state.itens_receita])
-            
-            if ids_na_memoria:
-                df_nomes_banco = pd.read_sql("SELECT id, nome FROM insumos WHERE id IN %s", conn, params=(ids_na_memoria,))
-                dicionario_nomes = dict(zip(df_nomes_banco['id'], df_nomes_banco['nome']))
-                
-                col_del1, col_del2 = st.columns([3, 1])
-                with col_del1:
-                    posicoes = list(range(len(st.session_state.itens_receita)))
-                    
-                    def formatar_nome_dropdown(i):
-                        id_insumo = st.session_state.itens_receita[i]["insumo_id"]
-                        nome_insumo = dicion
+        with
         
 elif menu == "💲 Precificação por CMV":
     st.header("Simulador de Preço por Canal de Venda")
