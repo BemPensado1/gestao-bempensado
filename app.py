@@ -553,7 +553,9 @@ elif menu == "📝 Fichas Técnicas":
 
                         if virar_insumo and float(peso_total) > 0:
                             nome_insumo_base = f"[BASE] {nome_receita.strip()}"
-                            custo_unit_base = float(custo_total_receita) / float(peso_total)
+                            custo_total_float = float(custo_total_receita)
+                            peso_float = float(peso_total)
+                            custo_unit_base = custo_total_float / peso_float
 
                             cursor.execute("SELECT id FROM insumos WHERE nome = %s LIMIT 1", (nome_insumo_base,))
                             ins_existente = cursor.fetchone()
@@ -561,21 +563,16 @@ elif menu == "📝 Fichas Técnicas":
                             if ins_existente:
                                 cursor.execute("""
                                     UPDATE insumos
-                                    SET custo_real_unitario = %s
+                                    SET custo_real_unitario = %s,
+                                        preco_compra = %s,
+                                        marca = %s
                                     WHERE id = %s
-                                """, (custo_unit_base, ins_existente[0]))
+                                """, (custo_unit_base, custo_total_float, "Produção Própria", ins_existente[0]))
                             else:
                                 cursor.execute("""
-                                    INSERT INTO insumos (nome, marca, unidade, custo_real_unitario)
-                                    VALUES (%s, %s, %s, %s)
-                                """, (nome_insumo_base, "Produção Própria", "g", custo_unit_base))
-
-                        conn.commit()
-                        st.success(f"Ficha técnica '{nome_receita}' salva com sucesso!")
-                        st.session_state.itens_receita = []
-                        st.session_state["chk_virar_insumo_unico"] = False
-                        if "editor_itens_receita_unico" in st.session_state:
-                            del st.session_state["editor_itens_receita_unico"]
+                                    INSERT INTO insumos (nome, marca, unidade, custo_real_unitario, preco_compra)
+                                    VALUES (%s, %s, %s, %s, %s)
+                                """, (nome_insumo_base, "Produção Própria", "g", custo_unit_base, custo_total_float))
                         st.rerun()
                     except Exception as err:
                         try:
