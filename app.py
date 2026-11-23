@@ -423,7 +423,7 @@ elif menu == "📝 Fichas Técnicas":
             st.session_state.itens_receita = []
 
         col_sel1, col_sel2, col_sel3 = st.columns([3, 2, 1])
-        with
+        with col_sel1:
         
 elif menu == "💲 Precificação por CMV":
     st.header("Simulador de Preço por Canal de Venda")
