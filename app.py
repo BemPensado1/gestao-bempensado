@@ -424,6 +424,267 @@ elif menu == "📝 Fichas Técnicas":
 
         col_sel1, col_sel2, col_sel3 = st.columns([3, 2, 1])
         with col_sel1:
+            insumo_escolhido = st.selectbox(
+                "Insumo", 
+                df_insumos_ft.apply(lambda r: f"{r['id']} - {r['nome']} ({r['marca']})", axis=1).tolist(),
+                key="select_insumo_ft_unico"
+            )
+        with col_sel2:
+            qtd_usada = st.number_input("Qtd usada (g, ml ou un)", min_value=0.01, value=100.0, key="input_qtd_usada_unico")
+        with col_sel3:
+            st.write("")
+            st.write("")
+            if st.button("➕ Adicionar", key="btn_add_insumo_unico"):
+                ins_id = int(insumo_escolhido.split(" - ")[0])
+                st.session_state.itens_receita.append({"insumo_id": ins_id, "quantidade": qtd_usada})
+                st.success("Item adicionado à lista!")
+
+        if st.session_state.itens_receita:
+            st.write("### 📋 Ingredientes Adicionados nesta Receita:")
+            
+            lista_tabela = []
+            for item in st.session_state.itens_receita:
+                dados_ins = df_insumos_ft[df_insumos_ft['id'] == item['insumo_id']].iloc[0]
+                lista_tabela.append({
+                    "id_oculto": item['insumo_id'],
+                    "Insumo": dados_ins['nome'],
+                    "Marca": dados_ins['marca'],
+                    "Qtd Usada": float(item['quantidade']),
+                    "Unidade": dados_ins['unidade'],
+                    "Custo Parcial (R$)": float(dados_ins['custo_real_unitario'] * item['quantidade']),
+                    "custo_base": float(dados_ins['custo_real_unitario'])
+                })
+
+            df_tabela = pd.DataFrame(lista_tabela)
+
+            df_editado = st.data_editor(
+                df_tabela,
+                column_config={
+                    "id_oculto": None, 
+                    "custo_base": None,
+                    "Insumo": st.column_config.Column(disabled=True),
+                    "Marca": st.column_config.Column(disabled=True),
+                    "Unidade": st.column_config.Column(disabled=True),
+                    "Custo Parcial (R$)": st.column_config.NumberColumn(disabled=True, format="R$ %.2f"),
+                    "Qtd Usada": st.column_config.NumberColumn("Qtd Usada (✏️ Edite aqui)", min_value=0.01)
+                },
+                hide_index=True,
+                use_container_width=True,
+                key="editor_itens_receita_unico"
+            )
+
+            mudou = False
+            custo_total_receita = 0.0
+            novos_itens = []
+
+            for index, row in df_editado.iterrows():
+                qtd_editada = row['Qtd Usada']
+                qtd_original = df_tabela.iloc[index]['Qtd Usada']
+                
+                if qtd_editada != qtd_original:
+                    mudou = True
+                
+                custo_total_receita += (row['custo_base'] * qtd_editada)
+                novos_itens.append({"insumo_id": row['id_oculto'], "quantidade": qtd_editada})
+
+            if mudou:
+                st.session_state.itens_receita = novos_itens
+                if "editor_itens_receita_unico" in st.session_state:
+                    del st.session_state["editor_itens_receita_unico"]
+                st.rerun()
+
+        if len(st.session_state.itens_receita) > 0:
+            st.markdown("---")
+            ids_na_memoria = tuple([item["insumo_id"] for item in st.session_state.itens_receita])
+            
+            if ids_na_memoria:
+                df_nomes_banco = pd.read_sql("SELECT id, nome FROM insumos WHERE id IN %s", conn, params=(ids_na_memoria,))
+                dicionario_nomes = dict(zip(df_nomes_banco['id'], df_nomes_banco['nome']))
+                
+                col_del1, col_del2 = st.columns([3, 1])
+                with col_del1:
+                    posicoes = list(range(len(st.session_state.itens_receita)))
+                    
+                    def formatar_nome_dropdown(i):
+                        id_insumo = st.session_state.itens_receita[i]["insumo_id"]
+                        nome_insumo = dicionario_nomes.get(id_insumo, "Desconhecido")
+                        qtd = st.session_state.itens_receita[i]["quantidade"]
+                        return f"Linha {i+1}: {nome_insumo} (Qtd: {qtd})"
+                        
+                    item_escolhido = st.selectbox("Qual ingrediente deseja remover?", posicoes, format_func=formatar_nome_dropdown)
+                    
+                with col_del2:
+                    st.write("") 
+                    if st.button("🗑️ Remover Escolhido", use_container_width=True):
+                        st.session_state.itens_receita.pop(item_escolhido)
+                        if "editor_itens_receita_unico" in st.session_state:
+                            del st.session_state["editor_itens_receita_unico"]
+                        st.rerun()
+            st.markdown("---")
+            
+            st.metric("💰 Custo Total de Produção da Receita", f"R$ {custo_total_receita:.2f}")
+            st.metric("🍰 Custo por Unidade / Porção", f"R$ {custo_total_receita / rendimento:.2f}")
+
+            if st.button("💾 Salvar Ficha Técnica Completa", key="btn_salvar_receita_definitivo"):
+                if nome_receita.strip() == "":
+                    st.error("Por favor, preencha o Nome da Receita antes de salvar.")
+                else:
+                    try:
+                        cursor = conn.cursor()
+                        cursor.execute("""
+                            INSERT INTO receitas (nome, rendimento_unidades, peso_total_g, tempo_preparo_minutos, anotacoes) 
+                            VALUES (%s, %s, %s, %s, %s)
+                            ON CONFLICT (nome) DO UPDATE 
+                            SET rendimento_unidades = EXCLUDED.rendimento_unidades, 
+                                peso_total_g = EXCLUDED.peso_total_g,
+                                tempo_preparo_minutos = EXCLUDED.tempo_preparo_minutos,
+                                anotacoes = EXCLUDED.anotacoes
+                            RETURNING id;
+                        """, (nome_receita, rendimento, peso_total, tempo_preparo, anotacoes))
+                        rec_id = cursor.fetchone()[0]
+
+                        cursor.execute("DELETE FROM receita_itens WHERE receita_id = %s", (rec_id,))
+
+                        for item in st.session_state.itens_receita:
+                            cursor.execute("""
+                                INSERT INTO receita_itens (receita_id, insumo_id, quantidade_usada)
+                                VALUES (%s, %s, %s)
+                            """, (rec_id, item['insumo_id'], item['quantidade']))
+
+                        if virar_insumo and float(peso_total) > 0:
+                            nome_insumo_base = f"[BASE] {nome_receita.strip()}"
+                            custo_unit_base = float(custo_total_receita) / float(peso_total)
+
+                            cursor.execute("SELECT id FROM insumos WHERE nome = %s LIMIT 1", (nome_insumo_base,))
+                            ins_existente = cursor.fetchone()
+
+                            if ins_existente:
+                                cursor.execute("""
+                                    UPDATE insumos
+                                    SET custo_real_unitario = %s
+                                    WHERE id = %s
+                                """, (custo_unit_base, ins_existente[0]))
+                            else:
+                                cursor.execute("""
+                                    INSERT INTO insumos (nome, marca, unidade, custo_real_unitario)
+                                    VALUES (%s, %s, %s, %s)
+                                """, (nome_insumo_base, "Produção Própria", "g", custo_unit_base))
+
+                        conn.commit()
+                        st.success(f"Ficha técnica '{nome_receita}' salva com sucesso!")
+                        st.session_state.itens_receita = []
+                        st.session_state["chk_virar_insumo_unico"] = False
+                        if "editor_itens_receita_unico" in st.session_state:
+                            del st.session_state["editor_itens_receita_unico"]
+                        st.rerun()
+                    except Exception as err:
+                        try:
+                            conn.rollback()
+                        except:
+                            pass
+                        st.error(f"Erro ao salvar ficha técnica: {err}")
+
+# === ÁREA PARA VISUALIZAR AS RECEITAS SALVAS ===
+    st.markdown("---")
+    st.subheader("📖 As Minhas Receitas Salvas")
+    
+    def preparar_edicao(nome, rend, peso, tempo, anotacoes, itens):
+        st.session_state["input_nome_receita_unico"] = nome
+        st.session_state["input_rendimento_unico"] = float(rend) if pd.notna(rend) else 1.0
+        st.session_state["input_peso_total_unico"] = float(peso) if pd.notna(peso) else 1000.0
+        st.session_state["input_tempo_unico"] = int(tempo) if pd.notna(tempo) else 60
+        st.session_state["input_anotacoes_unico"] = str(anotacoes) if pd.notna(anotacoes) else ""
+        st.session_state["chk_virar_insumo_unico"] = False
+        st.session_state.itens_receita = itens
+        if "editor_itens_receita_unico" in st.session_state:
+            del st.session_state["editor_itens_receita_unico"]
+
+    def preparar_duplicacao(nome, rend, peso, tempo, anotacoes, itens):
+        st.session_state["input_nome_receita_unico"] = f"{nome} (Cópia)"
+        st.session_state["input_rendimento_unico"] = float(rend) if pd.notna(rend) else 1.0
+        st.session_state["input_peso_total_unico"] = float(peso) if pd.notna(peso) else 1000.0
+        st.session_state["input_tempo_unico"] = int(tempo) if pd.notna(tempo) else 60
+        st.session_state["input_anotacoes_unico"] = str(anotacoes) if pd.notna(anotacoes) else ""
+        st.session_state["chk_virar_insumo_unico"] = False
+        st.session_state.itens_receita = itens
+        if "editor_itens_receita_unico" in st.session_state:
+            del st.session_state["editor_itens_receita_unico"]
+
+    try:
+        df_receitas = pd.read_sql("SELECT id, nome, rendimento_unidades, peso_total_g, tempo_preparo_minutos, anotacoes FROM receitas ORDER BY nome", conn)
+    except Exception:
+        df_receitas = pd.DataFrame()
+        
+    if not df_receitas.empty:
+        receita_selecionada = st.selectbox("Pesquisar receita salva:", df_receitas['nome'].tolist(), index=None, placeholder="Escolha uma receita para visualizar...")
+        
+        if receita_selecionada:
+            dados_rec = df_receitas[df_receitas['nome'] == receita_selecionada].iloc[0]
+            
+            query_itens = """
+                SELECT ri.insumo_id, i.nome as "Insumo", i.marca as "Marca", ri.quantidade_usada as "Qtd Usada", 
+                       i.unidade as "Unidade", i.custo_real_unitario,
+                       (ri.quantidade_usada * i.custo_real_unitario) as "Custo Parcial"
+                FROM receita_itens ri
+                JOIN insumos i ON ri.insumo_id = i.id
+                WHERE ri.receita_id = %s
+            """
+            try:
+                df_itens_salvos = pd.read_sql(query_itens, conn, params=(int(dados_rec['id']),))
+                
+                if not df_itens_salvos.empty:
+                    custo_total = df_itens_salvos['Custo Parcial'].sum()
+                    custo_unidade = custo_total / float(dados_rec['rendimento_unidades'])
+                    
+                    st.write(f"**Rendimento:** {dados_rec['rendimento_unidades']} | **Tempo:** {dados_rec.get('tempo_preparo_minutos', 60)} min | **Peso:** {dados_rec['peso_total_g']}g")
+                    if pd.notna(dados_rec.get('anotacoes')) and dados_rec['anotacoes'] != "":
+                        st.info(f"📝 **Anotações:** {dados_rec['anotacoes']}")
+                    
+                    st.dataframe(
+                        df_itens_salvos,
+                        column_config={
+                            "insumo_id": None, 
+                            "custo_real_unitario": None, 
+                            "Custo Parcial": st.column_config.NumberColumn("Custo Parcial (R$)", format="R$ %.2f"),
+                            "Qtd Usada": st.column_config.NumberColumn("Qtd Usada", format="%.2f")
+                        },
+                        hide_index=True,
+                        use_container_width=True
+                    )
+                    
+                    itens_para_editar = [{"insumo_id": int(row['insumo_id']), "quantidade": float(row['Qtd Usada'])} for _, row in df_itens_salvos.iterrows()]
+                    
+                    col_tot1, col_tot2, col_tot3, col_tot4, col_tot5 = st.columns([2.5, 2.5, 2, 1.5, 1.5])
+                    with col_tot1:
+                        st.info(f"💰 Total: **R$ {custo_total:.2f}**")
+                    with col_tot2:
+                        st.success(f"🍰 Unit: **R$ {custo_unidade:.2f}**")
+                    with col_tot3:
+                        st.button(
+                            "📄 Duplicar", 
+                            key=f"dup_rec_{dados_rec['id']}", 
+                            on_click=preparar_duplicacao, 
+                            args=(dados_rec['nome'], dados_rec['rendimento_unidades'], dados_rec['peso_total_g'], dados_rec.get('tempo_preparo_minutos', 60), dados_rec.get('anotacoes', ''), itens_para_editar)
+                        )
+                    with col_tot4:
+                        st.button(
+                            "✏️ Editar", 
+                            key=f"edit_rec_{dados_rec['id']}", 
+                            on_click=preparar_edicao, 
+                            args=(dados_rec['nome'], dados_rec['rendimento_unidades'], dados_rec['peso_total_g'], dados_rec.get('tempo_preparo_minutos', 60), dados_rec.get('anotacoes', ''), itens_para_editar)
+                        )
+                    with col_tot5:
+                        # O NOVO CADEADO DE SEGURANÇA
+                        liberar_exclusao = st.checkbox("🔓 Destravar", key=f"unlock_{dados_rec['id']}")
+                        if st.button("🗑️ Excluir", key=f"del_rec_{dados_rec['id']}", disabled=not liberar_exclusao, type="primary" if liberar_exclusao else "secondary"):
+                            cursor = conn.cursor()
+                            cursor.execute("DELETE FROM receitas WHERE id = %s", (int(dados_rec['id']),))
+                            conn.commit()
+                            st.rerun()
+            except Exception as e:
+                st.error(f"Erro ao carregar os ingredientes: {e}")
+    else:
+        st.info("Nenhuma ficha técnica guardada ainda.")
         
 elif menu == "💲 Precificação por CMV":
     st.header("Simulador de Preço por Canal de Venda")
