@@ -572,14 +572,15 @@ elif menu == "📝 Fichas Técnicas":
                                     SET custo_real_unitario = %s,
                                         preco_compra = %s,
                                         peso_bruto = %s,
+                                        peso_liquido = %s,
                                         marca = %s
                                     WHERE id = %s
-                                """, (custo_unit_base, custo_total_float, peso_float, "Produção Própria", ins_existente[0]))
+                                """, (custo_unit_base, custo_total_float, peso_float, peso_float, "Produção Própria", ins_existente[0]))
                             else:
                                 cursor.execute("""
-                                    INSERT INTO insumos (nome, marca, unidade, custo_real_unitario, preco_compra, peso_bruto)
-                                    VALUES (%s, %s, %s, %s, %s, %s)
-                                """, (nome_insumo_base, "Produção Própria", "g", custo_unit_base, custo_total_float, peso_float))
+                                    INSERT INTO insumos (nome, marca, unidade, custo_real_unitario, preco_compra, peso_bruto, peso_liquido)
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                                """, (nome_insumo_base, "Produção Própria", "g", custo_unit_base, custo_total_float, peso_float, peso_float))
 
                         conn.commit()
                         st.session_state.itens_receita = []
