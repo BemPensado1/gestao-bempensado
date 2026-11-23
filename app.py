@@ -585,7 +585,6 @@ elif menu == "📝 Fichas Técnicas":
 
                         conn.commit()
                         st.session_state.itens_receita = []
-                        st.session_state["chk_virar_insumo_unico"] = False
                         if "editor_itens_receita_unico" in st.session_state:
                             del st.session_state["editor_itens_receita_unico"]
                         st.rerun()
