@@ -530,6 +530,12 @@ elif menu == "📝 Fichas Técnicas":
                     st.error("Por favor, preencha o Nome da Receita antes de salvar.")
                 else:
                     try:
+                        custo_para_salvar = 0.0
+                        mapa_custos = dict(zip(df_insumos_ft['id'], df_insumos_ft['custo_real_unitario']))
+                        for item in st.session_state.itens_receita:
+                            custo_unit_item = float(mapa_custos.get(item['insumo_id'], 0.0))
+                            custo_para_salvar += custo_unit_item * float(item['quantidade'])
+
                         cursor = conn.cursor()
                         cursor.execute("""
                             INSERT INTO receitas (nome, rendimento_unidades, peso_total_g, tempo_preparo_minutos, anotacoes) 
@@ -553,7 +559,7 @@ elif menu == "📝 Fichas Técnicas":
 
                         if virar_insumo and float(peso_total) > 0:
                             nome_insumo_base = f"[BASE] {nome_receita.strip()}"
-                            custo_total_float = float(custo_total_receita)
+                            custo_total_float = float(custo_para_salvar)
                             peso_float = float(peso_total)
                             custo_unit_base = custo_total_float / peso_float
 
@@ -573,6 +579,12 @@ elif menu == "📝 Fichas Técnicas":
                                     INSERT INTO insumos (nome, marca, unidade, custo_real_unitario, preco_compra)
                                     VALUES (%s, %s, %s, %s, %s)
                                 """, (nome_insumo_base, "Produção Própria", "g", custo_unit_base, custo_total_float))
+
+                        conn.commit()
+                        st.session_state.itens_receita = []
+                        st.session_state["chk_virar_insumo_unico"] = False
+                        if "editor_itens_receita_unico" in st.session_state:
+                            del st.session_state["editor_itens_receita_unico"]
                         st.rerun()
                     except Exception as err:
                         try:
